@@ -33,4 +33,5 @@ On an NVIDIA GPU machine, first install PyTorch 2.15.0 for CUDA 12.8 or newer, f
 | `tests/` | Automatic checks for the shared code. |
 | `results/` | Scores for each run, plus figures. |
 | `docs/project_notes.md` | Plain-language explanation of the project. |
-| `data/` | Downloaded data. Not on GitHub (too large). |
+| `data/eval/` | The fixed test and dev puzzles (on GitHub). |
+| `data/raw/`, `data/processed/` | Downloads and training data. Not on GitHub (too large); rebuilt by `01_data_pipeline.ipynb`. |

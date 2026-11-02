@@ -79,6 +79,7 @@ The training data and the test puzzles must not overlap. If a test position appe
 | `configs/` | All experiment settings. Changing an experiment means editing these files. |
 | `src/chesslm/` | Shared code used by the notebooks. |
 | `results/` | Scores for each run, and figures. |
+| `data/eval/` | The fixed test and dev puzzles. Every model is graded on these. |
 | `docs/project_notes.md` | This document. |
 | `CONTRIBUTIONS.md` | A dated record of who did what. |
 
@@ -121,3 +122,48 @@ The training data and the test puzzles must not overlap. If a test position appe
 **Limitations / open questions.**
 - The full model weights (~10 GB) have not been downloaded yet; this happens in Step 4.
 - The machine for training is still to be decided: the GPU laptop, Colab, or Databricks.
+
+### Step 2: Data pipeline (Nov 1)
+
+**What we built.** A pipeline, [01_data_pipeline.ipynb](../notebooks/01_data_pipeline.ipynb) with its code in `src/chesslm/data.py`, that produces two kinds of data:
+- **Evaluation sets.** A test set of 1,000 Lichess puzzles and a dev set of 200, with equal numbers in four rating bands. They are saved in `data/eval/` and committed, so every model, including Nathan's DPO and RL models, is graded on the same puzzles.
+- **Training data.** 150,000 positions sampled from 50,000 games between players rated 2000 or higher. Each position is paired with the move that was played. The positions are split by game into training and validation sets.
+
+**Why it matters.** The evaluation sets define how every model in the project is measured, so they are fixed once and never changed. The training data determines what SFT can learn: the model can only imitate the moves it sees.
+
+**How we know it works.**
+- Nine unit tests (`tests/test_data.py`) cover the puzzle format, the game filters, position sampling, leakage removal, and the train/validation split.
+- The notebook shows a puzzle before and after the opponent's move and confirms that the answer is legal in the solver's position.
+- No training position appears in the test or dev sets (overlap after removal: 0).
+- The test and dev sets share no puzzles, and the training and validation sets share no games.
+
+**Key numbers** (from [results/data_stats.json](../results/data_stats.json)):
+
+| Filter step | Games remaining |
+|---|---|
+| Games read (one file, September 2025) | 1,404,031 |
+| Both players rated 2000+ | 245,522 |
+| No bot accounts | 242,573 |
+| Not bullet (≥ 3 minutes per player) | 92,501 |
+| Ended normally | 70,904 |
+| At least 20 moves (first 50,000 kept) | 50,000 |
+
+- **Positions:** 150,000 sampled (3 per game). Training: 142,500 positions from 47,500 games. Validation: 7,500 positions from 2,500 games. Removed for overlap with the evaluation sets: 0.
+- **Test set:** 250 puzzles per band (<1200, 1200–1800, 1800–2400, 2400+). 110 are mate-in-1 puzzles.
+- **Dev set:** 50 puzzles per band.
+- **Puzzle database:** 6,157,341 puzzles.
+
+**Choices we made and why.**
+- **Rating threshold 2000** for both players, so the training moves are strong (ablation candidate).
+- **Bot accounts excluded.** The rating histogram showed a cluster of players near 3000; 98% of those were Lichess bot accounts, which are chess engines. Since we train on human play, we exclude games involving bots. This setting can be switched off (ablation candidate).
+- **Three positions per game, skipping the first five moves.** Several positions per game give variety without many near-identical examples. Opening moves are largely memorized sequences.
+- **Equal puzzles per rating band**, so we can report accuracy at each difficulty level.
+- **Both notations stored** (UCI and SAN). UCI is the default for prompts; SAN is available as an ablation (applied in Step 3).
+- **Pinned dataset versions.** The puzzle database is updated regularly; pinning the version makes the data reproducible.
+
+**Limitations / open questions.**
+- **Puzzles and games differ.** Puzzles are tactical positions with one clearly best move; most game positions are quieter, and the move a 2000-rated player chose is not always the best one. SFT on games may therefore transfer only partly to puzzles. DPO and RL, which use Stockfish's judgment, may help here.
+- **Overall test accuracy is not a natural average.** Equal bands give hard puzzles more weight than they have in the full database, so the per-band numbers are the more informative ones.
+- **The leakage check catches identical positions only.** Very similar positions can still appear in both sets.
+- **All games come from one month** (September 2025).
+- **The first SFT run uses a subsample** of the training data (Step 5), as planned.

@@ -1,0 +1,34 @@
+# Data pipeline settings. Every value here can be changed for an ablation.
+
+seed: 42
+
+puzzles:
+  repo: Lichess/chess-puzzles
+  # Pinned dataset version, so the evaluation sets can always be rebuilt identically.
+  revision: 461725966ea46898ec6481372a6326de3281bfbd
+  files:
+    - data/train-00000-of-00003.parquet
+    - data/train-00001-of-00003.parquet
+    - data/train-00002-of-00003.parquet
+  # Band edges -> 4 bands: <1200, 1200-1800, 1800-2400, 2400+. Equal puzzles per band.
+  rating_band_edges: [1200, 1800, 2400]
+  test_size: 1000
+  dev_size: 200
+
+games:
+  repo: Lichess/standard-chess-games
+  revision: de4e636eddf568a9394cc01fb0b9e1da04a6babf
+  # One month of games is ~62 GB, so we use only the first file(s) of September 2025.
+  files:
+    - data/year=2025/month=09/train-00000-of-00062.parquet
+  min_elo: 2000                # both players
+  exclude_bots: true           # skip games involving Lichess bot accounts (chess engines)
+  min_base_time_seconds: 180   # excludes bullet games
+  termination: Normal          # excludes games lost on time or abandoned
+  min_moves: 20                # full moves (one White move + one Black move)
+  max_games: 50000
+
+positions:
+  per_game: 3                  # a few per game, to avoid many near-identical positions
+  skip_opening_moves: 5        # opening moves are mostly memorized book lines
+  val_fraction: 0.05           # validation split, made by game (not by position)

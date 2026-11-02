@@ -1,0 +1,33 @@
+{
+  "games_source": "Lichess/standard-chess-games @ de4e636: data/year=2025/month=09/train-00000-of-00062.parquet",
+  "puzzles_source": "Lichess/chess-puzzles @ 4617259",
+  "game_filter_funnel": {
+    "games read": 1404031,
+    "both players rated 2000+": 245522,
+    "no bot accounts": 242573,
+    "not bullet (base time >= 180s)": 92501,
+    "termination = Normal": 70904,
+    "at least 20 moves (first 50,000 kept)": 50000
+  },
+  "positions_sampled": 150000,
+  "positions_removed_overlap": 0,
+  "train_positions": 142500,
+  "train_games": 47500,
+  "val_positions": 7500,
+  "val_games": 2500,
+  "puzzles_in_database": 6157341,
+  "test_puzzles_per_band": {
+    "1200-1800": 250,
+    "1800-2400": 250,
+    "2400+": 250,
+    "<1200": 250
+  },
+  "dev_puzzles_per_band": {
+    "1200-1800": 50,
+    "1800-2400": 50,
+    "2400+": 50,
+    "<1200": 50
+  },
+  "test_mate_in_1": 110,
+  "seed": 42
+}

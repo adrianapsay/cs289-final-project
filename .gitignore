@@ -6,8 +6,10 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Data and model weights: large, and rebuilt by the pipeline
-data/
+# Data and model weights: large, and rebuilt by the pipeline.
+# Exception: the small test/dev puzzle sets are committed, so everyone grades on the same puzzles.
+data/*
+!data/eval/
 checkpoints/
 outputs/
 *.safetensors
