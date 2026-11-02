@@ -8,6 +8,7 @@ _TODO: written by the team._
 
 - **Training: Lichess games.** About 142,500 positions from games between players rated 2000+, each paired with the move that was played. Games give a large and varied set of realistic positions.
 - **Testing: Lichess puzzles.** 1,000 puzzles (plus 200 for quick checks), each with one correct move, so answers can be graded objectively. Puzzles are never used for training, and no training position appears among them.
+- **Planned comparison:** training on puzzles (different ones from the test set), or on a mix of puzzles and games, instead of games only.
 
 ---
 

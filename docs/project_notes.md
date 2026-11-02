@@ -68,6 +68,7 @@ Each factor below can be changed in a config file without touching the code. An 
 | Move notation | Input features | `notation` (`prompt.yaml`) | UCI | SAN |
 | Move history in the prompt | Input features | `history_moves` (`prompt.yaml`) | 0 (board only) | 1 (last move) |
 | Legal moves listed in the prompt | Input features | `show_legal_moves` (`prompt.yaml`) | off | on (raise `max_seq_length` to 384) |
+| Training data source | Training data | to be added | games | puzzles (not the test or dev puzzles); a mix of both |
 | Player rating threshold | Training data | `min_elo` (`data.yaml`) | 2000 | e.g. 1600, 2200 |
 | Games against bot accounts | Training data | `exclude_bots` (`data.yaml`) | excluded | included |
 | Number of training examples | Training data | `train_examples` (`sft.yaml`) | 20,000 | e.g. 5,000, 50,000 |
@@ -117,7 +118,7 @@ DPO and RL will add their own factors, for example the DPO rejection threshold a
 
 - **What we built:** `src/chesslm/prompts.py` turns a position into the model's prompt (the board as a FEN, whose turn it is, and an instruction to reply with one move). It also reads the move back from the reply as *legal*, *illegal*, or *unparseable*.
 - **Why it matters:** every model is asked the same question and graded by the same reader. Separating illegal from unparseable answers distinguishes misunderstanding the rules from ignoring the instruction, as in the LLM CHESS benchmark cited in our draft.
-- **How we know it works:** 27 tests cover sentences, markdown, move numbers, check symbols, promotions, castling, and ambiguous moves. They found and fixed one bug, with castling written as `0-0-0`.
+- **How we know it works:** 27 tests cover sentences, markdown, move numbers, check symbols, promotions, castling, and ambiguous moves.
 - **Choices:**
   - One prompt configuration (`configs/prompt.yaml`) is shared by training and evaluation.
   - UCI is the default notation.
