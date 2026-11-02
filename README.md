@@ -19,8 +19,8 @@ This project studies how post-training methods improve a small language model's 
 - Report outline, abstract, and related work (Overleaf)
 
 **Still to do for the progress report (Nov 6)**
-- Run notebooks 02–03 on the GPU to get the base vs. SFT results (5070 Ti teammate)
-- Run DPO and a first RL run from the SFT model, for preliminary results (Nathan)
+- Run notebooks 02–03 on the GPU to get the base vs. SFT results (Nathan)
+- Then run DPO and a first RL run from the SFT model, for preliminary results (Nathan)
 - Write the report: progress, contributions, results (Hannah)
 - Agree on the updated timeline (everyone)
 
@@ -92,7 +92,7 @@ git commit -m "Base model and SFT results"
 git push
 ```
 
-Then zip the folder `checkpoints/sft_v1/` and share it with the team. It is the trained model, and DPO and RL start from it.
+Keep the folder `checkpoints/sft_v1/`: it is the trained model, and DPO and RL start from it. Also back it up (zipped) to the team drive, since it is not on GitHub.
 
 ### If something goes wrong
 
