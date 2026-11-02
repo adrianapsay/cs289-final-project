@@ -82,6 +82,17 @@ Then zip the folder `checkpoints/sft_v1/` and share it with the team. It is the 
 
 ---
 
+## DPO and RL
+
+The inputs for DPO and RL are ready, and building them needs no GPU:
+1. Run `01_data_pipeline` (if not done yet), then `04_dpo_rl_inputs` (about 5 min). This builds the DPO preference pairs and shows the RL reward.
+2. The end of `04_dpo_rl_inputs` shows the few lines that plug the pairs and the reward into TRL's `DPOTrainer` and `GRPOTrainer`.
+3. Both start from the SFT model (`checkpoints/sft_v1/`). Grade the results with `chesslm.evaluate`, as in notebooks 02 and 03.
+
+Settings are in `configs/dpo.yaml` and `configs/rl.yaml`.
+
+---
+
 ## Setup on a Mac (data and code work)
 
 A Mac is fine for the data pipeline and the tests, but too slow to run the model.

@@ -148,3 +148,19 @@ DPO and RL will add their own factors, for example the DPO rejection threshold a
   - Settings from the project plan: LoRA rank 16 on the attention and MLP layers, learning rate 2e-4, one epoch, effective batch size 32, seed 42.
   - QLoRA (4-bit), to fit in 12 GB of GPU memory.
 - **Limitations:** one run with one seed, so differences of a few percentage points may be noise.
+
+### Step 8: Inputs for DPO and RL (Nov 1)
+
+- **What we built:** `src/chesslm/preferences.py`, `src/chesslm/rewards.py`, and [04_dpo_rl_inputs.ipynb](../notebooks/04_dpo_rl_inputs.ipynb).
+  - DPO preference pairs: Stockfish's best move is *chosen*, and a legal move losing at least 200 centipawns is *rejected*.
+  - RL reward: −1 for an illegal or unparseable answer. For a legal move, the dense mode scores closeness to Stockfish's best, and the sparse mode gives 1 for the best move only.
+- **Why it matters:** these are what DPO and RL train on. Both use the same prompts as SFT and evaluation, and both can be built without a GPU or the SFT model.
+- **How we know it works:** unit tests check both rewards and the pair format. In the notebook, the mating move scores 1.1, a legal but losing move scores 0.1, and illegal answers score −1.
+- **Key numbers:** 4,788 pairs from 5,000 training positions; 212 positions had no move losing 200+ centipawns. Rejected moves lose 620 centipawns at the median. Building the pairs took about 5 minutes on a laptop CPU.
+- **Choices:**
+  - Rejection threshold of 200 centipawns (about two pawns), from the project plan.
+  - A shallower Stockfish search for building pairs (depth 10) and for the reward (depth 8) than for evaluation (12), for speed.
+  - Dense reward by default, with sparse available as an ablation (following Hwang et al., cited in our draft).
+- **Limitations:**
+  - Many rejected moves are very bad (median 620 centipawns), so the pairs may be easy to tell apart. A narrower threshold range is an ablation candidate.
+  - The reward is computed at a shallow depth, so its scores are approximate.

@@ -9,4 +9,5 @@ Contributions so far.
 - **Prompts and move parsing:** a shared prompt format with ablation options, and a reader that classifies answers as legal, illegal, or unparseable.
 - **Evaluation:** puzzle accuracy, legal-move rate, and Stockfish centipawn loss, with greedy decoding.
 - **SFT training:** LoRA/QLoRA fine-tuning, comparison table, and figures.
-- **Tests and documentation:** 44 unit tests, README with GPU run instructions, and project notes.
+- **DPO and RL inputs:** 4,788 DPO preference pairs (Stockfish's best move vs. a move losing 200+ centipawns) and a Stockfish-based RL reward with dense and sparse modes.
+- **Tests and documentation:** 49 unit tests, README with GPU run instructions, and project notes.

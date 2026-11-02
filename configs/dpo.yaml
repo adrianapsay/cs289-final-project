@@ -1,0 +1,7 @@
+# DPO preference pairs. For each training position, Stockfish's best move is "chosen"
+# and a clearly worse legal move is "rejected". Each value is an ablation candidate.
+
+num_positions: 5000          # positions to build pairs from (~4% have no clearly worse move and are skipped)
+rejected_min_cp_loss: 200    # a rejected move must lose at least this many centipawns (about two pawns)
+stockfish_depth: 10          # slightly shallower than evaluation (12), so pairs build faster
+seed: 42

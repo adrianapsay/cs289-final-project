@@ -1,0 +1,11 @@
+# RL reward settings (for TRL's GRPO trainer). Rewards come from Stockfish,
+# so RL needs no example answers. Each value is an ablation candidate.
+
+reward:
+  # dense: reward grows the closer the move is to Stockfish's best.
+  # sparse: 1 for Stockfish's best move, 0 for any other legal move.
+  # Hwang et al. (cited in our draft) compare these two kinds of reward.
+  mode: dense
+  invalid: -1.0          # reward for an illegal or unparseable answer
+  legal_bonus: 0.1       # extra reward for any legal move (dense mode)
+  stockfish_depth: 8     # shallow, because every answer generated in training is scored
