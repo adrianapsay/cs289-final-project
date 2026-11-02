@@ -34,19 +34,21 @@ This project studies how post-training methods improve a small language model's 
 
 ---
 
-## Next steps: run the model on the GPU
+## Next steps for Nathan
 
-The code is ready. The model is too large for a laptop without an NVIDIA GPU, so these steps run on the RTX 5070 Ti. You will set things up once, run four notebooks in order, and push the results back. Most of the time is waiting.
+Everything below runs on the RTX 5070 Ti, in this order. **Goal: results pushed by Wed Nov 4.**
 
-**Before you start, make sure you have:**
-- an up-to-date NVIDIA driver (it must support CUDA 13.2; update through the NVIDIA app if unsure)
-- Python 3.12 or 3.13, and Git
-- about 25 GB of free disk space
-- write access to this GitHub repo (ask Adrian)
+1. **Set up** (once, about 20 min). See [Setup](#setup).
+2. **Base and SFT results.** Run notebooks `00` → `03`, then push the results. See [Run the notebooks](#run-the-notebooks) and [Push the results](#push-the-results).
+3. **DPO and RL inputs.** Run notebook `04` (about 5 min).
+4. **DPO.** Train from the SFT model with the pairs from `04`, grade, and push. See [DPO and RL training](#dpo-and-rl-training).
+5. **RL.** Do a first GRPO run from the SFT model with the reward from `04`, grade, and push.
 
-### 1. Get the code and install
+Tip: while `03` is training, write the DPO and RL training code, so it is ready when the SFT model is.
 
-In a terminal:
+### Setup
+
+You need an up-to-date NVIDIA driver (supporting CUDA 13.2), Python 3.12 or 3.13, Git, and about 25 GB of free disk space. In a terminal:
 
 ```bash
 git clone https://github.com/adrianapsay/cs289-final-project.git
@@ -57,19 +59,13 @@ pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cu132
 pip install -r requirements.txt
 ```
 
-(On Linux, activate with `source .venv/bin/activate` instead.)
-
-### 2. Install Stockfish
-
-Stockfish is the chess engine we use to score moves. Download it from [stockfishchess.org/download](https://stockfishchess.org/download/) and unzip it. Then tell the code where it is, and open a new terminal afterwards:
+Then install Stockfish, the chess engine we use to score moves. Download it from [stockfishchess.org/download](https://stockfishchess.org/download/), unzip it, tell the code where it is, and open a new terminal:
 
 ```bash
 setx STOCKFISH_PATH "C:\path\to\stockfish.exe"
 ```
 
-(On Linux: `sudo apt install stockfish`. No path needed.)
-
-### 3. Run the notebooks, in order
+### Run the notebooks
 
 Open each notebook in VS Code, choose the `.venv` kernel, and click **Run All**. Wait for each one to finish before starting the next.
 
@@ -77,14 +73,15 @@ Open each notebook in VS Code, choose the `.venv` kernel, and click **Run All**.
 |---|---|---|
 | `00_setup_check` | Checks the setup. It should report your GPU (CUDA). | 1 min |
 | `01_data_pipeline` | Builds the training data (downloads 1.9 GB). | 5 min |
-| `02_eval_base_model` | Grades the untrained model on the puzzles (downloads the 10 GB model the first time). | 30 min |
-| `03_sft_first_run` | Trains our first model, grades it, and makes the comparison table and figures. | 1–2 hours |
+| `02_eval_base_model` | Grades the untrained model on the puzzles (downloads the 10 GB model the first time). | up to 30 min |
+| `03_sft_first_run` | Trains the SFT model, grades it, and makes the comparison table and figures. | up to 1 hour |
+| `04_dpo_rl_inputs` | Builds the DPO pairs and shows the RL reward (no GPU needed). | 5 min |
 
-The times are estimates. Each notebook shows its progress while it runs.
+Keep the laptop plugged in and stop it from sleeping while notebooks run.
 
-### 4. Send the results back
+### Push the results
 
-**Why:** the progress report needs these results (the base vs. SFT table, the figures, and the compute used), and Nathan's DPO and RL training starts from the SFT model.
+**Why:** the progress report needs these results (the base vs. SFT table, the figures, and the compute used).
 
 ```bash
 git add results notebooks
@@ -92,27 +89,23 @@ git commit -m "Base model and SFT results"
 git push
 ```
 
-Keep the folder `checkpoints/sft_v1/`: it is the trained model, and DPO and RL start from it. Also back it up (zipped) to the team drive, since it is not on GitHub.
+Keep `checkpoints/sft_v1/`: it is the SFT model, and DPO and RL start from it. Back it up (zipped) to the team drive, since it is not on GitHub.
+
+### DPO and RL training
+
+- The end of `04_dpo_rl_inputs` shows the few lines that plug the pairs and the reward into TRL's `DPOTrainer` and `GRPOTrainer`.
+- Start both from the SFT model (`checkpoints/sft_v1/`). Settings are in `configs/dpo.yaml` and `configs/rl.yaml`.
+- Grade each model like notebooks 02 and 03 do: `evaluate`, then `save_run` with the run names `dpo_v1` and `grpo_v1`. Their scores then appear in `results/summary.csv` next to base and SFT, and the comparison table and figures can include them.
+- Push the results the same way as above.
 
 ### If something goes wrong
 
 | Problem | Fix |
 |---|---|
 | `CUDA out of memory` | Close other apps that use the GPU. Then lower `batch_size` in `configs/eval.yaml` (to 4) or `configs/sft.yaml` (to 2), and run the notebook again. |
-| `00_setup_check` says "CPU only" | PyTorch was installed without GPU support. Run the `pip install torch ...` line from step 1 again, then restart the notebook. |
-| `Stockfish not found` | Check step 2, then restart VS Code so it picks up `STOCKFISH_PATH`. |
+| `00_setup_check` says "CPU only" | PyTorch was installed without GPU support. Run the `pip install torch ...` line again, then restart the notebook. |
+| `Stockfish not found` | Check `STOCKFISH_PATH`, then restart VS Code. |
 | Anything else | Send Adrian the error message. |
-
----
-
-## DPO and RL
-
-The inputs for DPO and RL are ready, and building them needs no GPU:
-1. Run `01_data_pipeline` (if not done yet), then `04_dpo_rl_inputs` (about 5 min). This builds the DPO preference pairs and shows the RL reward.
-2. The end of `04_dpo_rl_inputs` shows the few lines that plug the pairs and the reward into TRL's `DPOTrainer` and `GRPOTrainer`.
-3. Both start from the SFT model (`checkpoints/sft_v1/`). Grade the results with `chesslm.evaluate`, as in notebooks 02 and 03.
-
-Settings are in `configs/dpo.yaml` and `configs/rl.yaml`.
 
 ---
 
