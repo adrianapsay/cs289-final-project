@@ -9,14 +9,14 @@ This project studies how post-training methods improve a small language model's 
 - **Training: Lichess games.** About 142,500 positions from games between players rated 2000+, each paired with the move that was played. Games give a large and varied set of realistic positions.
 - **Testing: Lichess puzzles.** 1,000 puzzles (plus 200 for quick checks), each with one correct move, so answers can be graded objectively. Puzzles are never used for training, and no training position appears among them.
 - **Why?** games supply many varied, realistic positions to learn from, while puzzles each have one verified answer, which makes them a fair exam. Keeping the two separate means test scores measure chess skill (not memorization).
-- **Planned comparison:** training on puzzles (different ones from the test set), or on a mix of puzzles and games, instead of games only.
+- **Planned:** training on puzzles (different ones from the test set), or on a mix of puzzles and games, instead of games only.
 
 ## Status
 
 **Done**
 - Data pipeline, evaluation, and SFT training code (notebooks 00–03), tested on a small scale
 - DPO preference pairs and RL reward (notebook 04)
-- Report outline, abstract, and related work (Overleaf)
+- Report outline, abstract, and related work (Overleaf, thanks Hannah!)
 
 **Still to do for the progress report (Nov 6)**
 - Run notebooks 02–03 on the GPU to get the base vs. SFT results (Nathan)
@@ -34,9 +34,9 @@ This project studies how post-training methods improve a small language model's 
 
 ---
 
-## Next steps for Nathan
+## Next steps (Nathan)
 
-Everything below runs on the RTX 5070 Ti, in this order. **Goal: results pushed by Wed Nov 4.**
+Everything below runs on your GPU, in this order. Results pushed by Wed Nov 4.
 
 1. **Set up** (once, about 20 min). See [Setup](#setup).
 2. **Base and SFT results.** Run notebooks `00` → `03`, then push the results. See [Run the notebooks](#run-the-notebooks) and [Push the results](#push-the-results).
