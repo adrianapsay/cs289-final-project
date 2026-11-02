@@ -5,3 +5,21 @@ num_positions: 5000          # positions to build pairs from (~4% have no clearl
 rejected_min_cp_loss: 200    # a rejected move must lose at least this many centipawns (about two pawns)
 stockfish_depth: 10          # slightly shallower than evaluation (12), so pairs build faster
 seed: 42
+
+# DPO training, starting from the SFT adapter (which is also the frozen reference model).
+# The model, LoRA, and 4-bit settings are the same as in configs/sft.yaml.
+training:
+  start_adapter: checkpoints/sft_v1
+  val_fraction: 0.05           # pairs held out to watch the preference accuracy during training
+  beta: 0.1                    # how far the model may move from the SFT model (higher = less)
+  learning_rate: 2.0e-5
+  lr_scheduler: cosine
+  warmup_steps: 0.1            # below 1 = a fraction of all steps
+  epochs: 1
+  max_seq_length: 256          # prompt plus one move, as in SFT
+  batch_size: 8                # pairs per step; lower it if the GPU runs out of memory
+  effective_batch_size: 32
+  gradient_checkpointing: true
+  logging_steps: 10
+  eval_steps: 50
+  seed: 42

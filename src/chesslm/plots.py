@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 
-# Colors follow the thing shown, in a fixed order: first run blue, second orange, third green.
-COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]
+# Colors follow the thing shown, in a fixed order: first run blue, second orange, third green, fourth yellow.
+COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 SURFACE, TEXT, MUTED, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e6e5e0"
 BANDS = ["<1200", "1200-1800", "1800-2400", "2400+"]
 
@@ -109,6 +109,18 @@ def loss_curve(log, path):
     ax.set_xlabel("training step", color=MUTED)
     ax.legend(frameon=False)
     _style(ax, "loss")
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    return fig
+
+
+def reward_curve(log, path):
+    """Average reward of the sampled answers over RL training steps (one series, so no legend)."""
+    fig, ax = plt.subplots(figsize=(7, 3.2), facecolor=SURFACE)
+    rows = log.dropna(subset=["reward"])
+    ax.plot(rows.step, rows.reward, color=COLORS[0], linewidth=2)
+    ax.set_xlabel("training step", color=MUTED)
+    _style(ax, "average reward of sampled answers")
     fig.tight_layout()
     fig.savefig(path, dpi=200)
     return fig

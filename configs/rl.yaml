@@ -9,3 +9,20 @@ reward:
   invalid: -1.0          # reward for an illegal or unparseable answer
   legal_bonus: 0.1       # extra reward for any legal move (dense mode)
   stockfish_depth: 8     # shallow, because every answer generated in training is scored
+
+# GRPO training, starting from the SFT adapter.
+# The model, LoRA, and 4-bit settings are the same as in configs/sft.yaml.
+training:
+  start_adapter: checkpoints/sft_v1
+  num_positions: 2000          # training positions used as prompts (each seen once)
+  num_generations: 8           # answers sampled per position; each is compared with the group's average
+  max_completion_length: 16    # a move is a few tokens
+  temperature: 1.0             # sampling temperature while training (evaluation stays greedy)
+  beta: 0.0                    # KL penalty to the SFT model; 0 = none (TRL's default)
+  learning_rate: 1.0e-5
+  lr_scheduler: constant
+  batch_size: 16               # answers per step (2 positions x 8 answers); lower it if the GPU runs out of memory
+  effective_batch_size: 32     # answers per update (4 positions)
+  gradient_checkpointing: true
+  logging_steps: 10
+  seed: 42
