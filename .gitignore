@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data and model weights: large, and rebuilt by the pipeline
+data/
+checkpoints/
+outputs/
+*.safetensors
+
+# Secrets
+.env
+
+# macOS
+.DS_Store

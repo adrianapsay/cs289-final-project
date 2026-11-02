@@ -1,0 +1,9 @@
+# Evaluation settings. Saved alongside every result so runs can be compared.
+
+stockfish:
+  # Leave null to use the STOCKFISH_PATH environment variable, then `stockfish` on PATH.
+  path: null
+  # Fixed search depth, so scores are comparable across runs.
+  depth: 12
+  # Cap each move's centipawn loss so one blunder doesn't dominate ACPL.
+  cp_loss_cap: 1000

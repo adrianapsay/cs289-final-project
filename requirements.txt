@@ -1,0 +1,21 @@
+# Pinned so every machine (Mac, Colab, GPU laptop) runs the same versions.
+# Tested with Python 3.12.
+torch==2.15.0
+transformers==5.22.1
+trl==1.17.1
+peft==0.21.2
+datasets==5.1.0
+accelerate==1.15.0
+chess==1.11.2
+pandas==3.1.0
+matplotlib==3.11.2
+pyyaml==6.0.3
+jupyter==1.1.1
+ipywidgets==8.1.9
+pytest==9.2.0
+
+# 4-bit QLoRA needs CUDA, so skip it on Macs.
+bitsandbytes==0.50.2; sys_platform != "darwin"
+
+# Our own code in src/chesslm, so notebooks can `import chesslm`.
+-e .

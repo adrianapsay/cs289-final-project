@@ -1,0 +1,19 @@
+# Supervised fine-tuning (SFT) settings. Starting values from the project plan;
+# each one is a candidate for a later ablation.
+
+model:
+  # Gemma 4 E2B, instruction-tuned (~2.3B effective parameters, ~5.1B with embeddings).
+  id: google/gemma-4-E2B-it
+
+lora:
+  rank: 16
+  alpha: 32
+  dropout: 0.05
+
+training:
+  learning_rate: 2.0e-4
+  lr_scheduler: cosine
+  epochs: 1
+  max_seq_length: 256
+  effective_batch_size: 32
+  seed: 42
