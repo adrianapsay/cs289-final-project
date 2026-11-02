@@ -1,0 +1,7 @@
+# How a position is shown to the model. Training and evaluation both read this file,
+# so the model is always asked the same way. Each option is an ablation candidate.
+
+notation: uci             # uci (e2e4) or san (Nf3): the notation of the answer and of any listed moves
+history_moves: 0          # include the last N moves (0 = board only). Test puzzles only know the
+                          # opponent's last move, so values above 1 can't be matched at test time.
+show_legal_moves: false   # list every legal move in the prompt

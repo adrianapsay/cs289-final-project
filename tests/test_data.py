@@ -88,7 +88,9 @@ def test_sample_positions_records_the_move_played_from_each_position():
         move = chess.Move.from_uci(row["move_uci"])
         assert move in board.legal_moves
         assert board.san(move) == row["move_san"]
-        assert len(row["history_uci"].split()) == row["ply"]
+        assert len(row["history_uci"].split()) == len(row["history_san"].split()) == row["ply"]
+    # The SAN history matches the UCI history move for move (e2e4 = e4, g1f3 = Nf3, ...).
+    assert rows[0]["history_san"].split()[:4] == ["e4", "e5", "Nf3", "Nc6"]
 
 
 def test_remove_overlap():

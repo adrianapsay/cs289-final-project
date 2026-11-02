@@ -83,9 +83,13 @@ def to_eval_rows(puzzles):
     for p in puzzles.itertuples():
         fen, answer_uci = puzzle_to_example(p.FEN, p.Moves)
         board = chess.Board(fen)
+        opponent_move = chess.Move.from_uci(p.Moves.split()[0])
         rows.append({
             "puzzle_id": p.PuzzleId,
             "fen": fen,
+            # Puzzles only know the opponent's last move, not the whole game.
+            "history_uci": opponent_move.uci(),
+            "history_san": chess.Board(p.FEN).san(opponent_move),
             "answer_uci": answer_uci,
             "answer_san": board.san(chess.Move.from_uci(answer_uci)),
             "rating": p.Rating,
@@ -150,6 +154,7 @@ def sample_positions(game_id, moves, per_game, skip_plies, rng):
     candidates = range(skip_plies, len(moves))
     chosen = set(rng.sample(candidates, min(per_game, len(candidates))))
     board = chess.Board()
+    sans = []  # every move so far in SAN, which needs the board as it was before each move
     rows = []
     for ply, move in enumerate(moves):
         if ply in chosen:
@@ -157,11 +162,13 @@ def sample_positions(game_id, moves, per_game, skip_plies, rng):
                 "game_id": game_id,
                 "ply": ply,
                 "fen": board.fen(),
-                # Every earlier move, so prompts can include recent move history.
+                # Every earlier move, in both notations, so prompts can include recent moves.
                 "history_uci": " ".join(m.uci() for m in moves[:ply]),
+                "history_san": " ".join(sans),
                 "move_uci": move.uci(),
                 "move_san": board.san(move),
             })
+        sans.append(board.san(move))
         board.push(move)
     return rows
 

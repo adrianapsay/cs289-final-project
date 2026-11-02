@@ -167,3 +167,38 @@ The training data and the test puzzles must not overlap. If a test position appe
 - **The leakage check catches identical positions only.** Very similar positions can still appear in both sets.
 - **All games come from one month** (September 2025).
 - **The first SFT run uses a subsample** of the training data (Step 5), as planned.
+
+### Step 3: Prompts and reading the model's answer (Nov 1)
+
+**What we built.** Two functions in `src/chesslm/prompts.py`, demonstrated in Part 6 of [01_data_pipeline.ipynb](../notebooks/01_data_pipeline.ipynb):
+- **The prompt builder** turns a position into the chat message the model receives: the board as a FEN, whose turn it is, and an instruction to reply with one move.
+- **The move reader** finds the first move in the model's reply and classifies it as *legal*, *illegal* (it looks like a move but is not allowed in the position), or *unparseable* (no move found).
+
+**Why it matters.** Every model in the project, whether base, SFT, DPO, or RL, is asked the same question in the same way and graded by the same reader. Otherwise, differences in scores could come from differences in wording rather than from training. Separating illegal from unparseable answers distinguishes a model that misunderstands chess rules from one that fails to follow the instruction. The LLM CHESS benchmark, cited in our draft, makes a similar distinction.
+
+**How we know it works.**
+- 25 test cases (`tests/test_prompts.py`) check the reader on plain moves, extra whitespace, moves inside sentences, markdown formatting, move numbers, check and mate symbols, promotions, castling (including castling written with zeros), ambiguous moves, and text with no move.
+- Two further tests check the prompt contents.
+- These tests found one bug, in reading queenside castling written as `0-0-0`, which is now fixed.
+
+**Key numbers** (Part 6 of the notebook; prompt length in tokens over 500 training positions):
+
+| Prompt option | Mean | Max |
+|---|---|---|
+| Board only (default) | 90 | 102 |
+| Board + last move | 98 | 110 |
+| Board + legal moves | 224 | 323 |
+
+**Choices we made and why.**
+- **One shared prompt configuration** (`configs/prompt.yaml`) for training and evaluation, so they cannot drift apart.
+- **UCI as the default notation.** It is the easiest to read back unambiguously; SAN is available as an ablation.
+- **Board only as the default prompt.** The other two options are ablation candidates:
+  - **Board + last move:** a short version of the move history. Longer move sequences helped in ChessLLM, cited in our draft.
+  - **Board + legal moves:** tests whether listing the legal moves helps.
+- **History limited to the last move.** Test puzzles come with only the opponent's last move, not the full game. To keep training and evaluation comparable, we stored the last move with every puzzle and limit the history option accordingly.
+- **The reader accepts both notations** regardless of which one the prompt asks for, so a correct move is never penalized for its format.
+
+**Limitations / open questions.**
+- The reader uses the first move it finds. A model that discusses several moves before choosing one would be graded on the first.
+- The legal-moves option produces prompts of up to 323 tokens, above the current training limit of 256. That limit must be raised to 384 if we run this ablation.
+- The prompt wording itself is fixed. Other phrasings might give different base-model results.

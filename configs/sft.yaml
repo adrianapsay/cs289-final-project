@@ -14,6 +14,6 @@ training:
   learning_rate: 2.0e-4
   lr_scheduler: cosine
   epochs: 1
-  max_seq_length: 256
+  max_seq_length: 256          # default prompts are ~100 tokens; with show_legal_moves, raise to 384
   effective_batch_size: 32
   seed: 42
