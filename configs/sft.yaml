@@ -4,16 +4,28 @@
 model:
   # Gemma 4 E2B, instruction-tuned (~2.3B effective parameters, ~5.1B with embeddings).
   id: google/gemma-4-E2B-it
+  revision: 3e22461f65e89153144f8adb70e3b8c2cc9845a7   # pinned model version
 
 lora:
   rank: 16
   alpha: 32
   dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]   # attention + MLP
+  quantize_4bit: true          # QLoRA on NVIDIA GPUs, to fit in 12 GB; ignored on Mac/CPU
+
+data:
+  trial_examples: 500          # a quick trial run first, to check that the loss goes down
+  train_examples: 20000        # subsample of the 142,500 training positions
+  val_examples: 1000
 
 training:
   learning_rate: 2.0e-4
   lr_scheduler: cosine
   epochs: 1
   max_seq_length: 256          # default prompts are ~100 tokens; with show_legal_moves, raise to 384
-  effective_batch_size: 32
+  batch_size: 4                # examples per step; lower it if the GPU runs out of memory
+  effective_batch_size: 32     # reached by accumulating gradients over several steps
+  gradient_checkpointing: true # saves GPU memory at some cost in speed
+  logging_steps: 10
+  eval_steps: 100
   seed: 42

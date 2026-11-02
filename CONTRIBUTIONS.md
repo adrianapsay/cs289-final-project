@@ -14,3 +14,7 @@ Dated, factual log of who built what.
 - **Adrian:** saved dataset statistics to `results/data_stats.json`.
 - **Adrian:** built the shared prompt builder and move reader (`src/chesslm/prompts.py`, `configs/prompt.yaml`): three prompt options (board only, + last move, + legal moves) in UCI or SAN; answers classified as legal, illegal, or unparseable. 27 unit tests (`tests/test_prompts.py`).
 - **Adrian:** added the opponent's last move to the evaluation puzzles and SAN move history to the training data, so the move-history prompt option is comparable between training and testing.
+- **Adrian:** built the evaluation harness (`src/chesslm/evaluate.py`, `src/chesslm/engine.py`, `notebooks/02_eval_base_model.ipynb`): puzzle accuracy (any mate counts in mate-in-1), legal/illegal/unparseable rates, Stockfish centipawn loss with caching, greedy decoding, results saved per run.
+- **Adrian:** built text-only model loading (`src/chesslm/model.py`), saving ~0.95 GB of GPU memory.
+- **Adrian:** built the SFT training code and notebook (`src/chesslm/train_sft.py`, `notebooks/03_sft_first_run.ipynb`): LoRA/QLoRA with TRL, loss on the answer only, compute logging, comparison table and figures (`src/chesslm/plots.py`).
+- **Adrian:** wrote GPU setup and run instructions for the team (README).

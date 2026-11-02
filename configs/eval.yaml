@@ -7,3 +7,8 @@ stockfish:
   depth: 12
   # Cap each move's centipawn loss so one blunder doesn't dominate ACPL.
   cp_loss_cap: 1000
+
+generation:
+  # Decoding is always greedy (see evaluate.py), so every model is graded the same way.
+  max_new_tokens: 32   # a move is a few tokens; this leaves room for a short sentence around it
+  batch_size: 8        # positions answered at once; lower it if the GPU runs out of memory

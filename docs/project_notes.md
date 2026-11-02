@@ -1,73 +1,48 @@
 # Project notes
 
-These notes explain what we are building, why, and what the results show. They are meant to be readable without going through the code. Technical terms are defined in the glossary.
+What we are building, why, and what the results show, readable without the code. Technical terms are defined in the glossary.
 
 ---
 
 ## Overview
 
-### Research question
+**Research question.** Language models can describe chess but often play it poorly, frequently proposing illegal moves. We study which post-training methods improve a small open model (Google's Gemma 4 E2B), and why. We compare supervised fine-tuning (SFT), direct preference optimization (DPO), and reinforcement learning (RL), first separately and then in combination, with similar data and compute budgets.
 
-Large language models can describe chess, but they often play it poorly, frequently proposing moves that are not legal in the position. We study which post-training methods improve a small open model's chess play, and why. Our model is Google's Gemma 4 E2B. We compare three methods: supervised fine-tuning (SFT), direct preference optimization (DPO), and reinforcement learning (RL). We apply each separately, and later in combination, with similar data and compute budgets so the comparison is fair.
+**Pipeline.**
+1. Collect Lichess games between players rated 2000 or higher.
+2. Turn each game into a few examples: a board position and the move that was played.
+3. Train the model on these examples (SFT). DPO and RL are applied on top of the SFT model later.
+4. Test every model on the same 1,000 Lichess puzzles, none of which appear in the training data.
+5. Compare each model with the untrained base model.
 
-### Pipeline
+**Methods.**
+- **SFT** trains the model to reproduce reference answers: given a position, it learns to produce the move a strong player made.
+- **DPO** trains on pairs of answers to the same position, one preferred (Stockfish's best move) and one rejected (a clearly worse move), and makes the preferred one more likely.
+- **RL** (not yet covered in the course) lets the model generate its own answers, scores each one with a *reward function* (here based on Stockfish), and makes high-scoring answers more likely.
 
-1. **Training data.** We collect games from Lichess, a free online chess platform, keeping only games in which both players are rated 2000 or higher.
-2. **Training examples.** From each game we sample a few positions. Each example pairs a position with the move the player actually made.
-3. **Training.** We fine-tune the model on these examples (SFT). DPO and RL are applied on top of the SFT model in later stages of the project.
-4. **Evaluation.** We test every model on the same 1,000 Lichess puzzles. Each puzzle has a single correct move, and none of them appear in the training data.
-5. **Comparison.** We report every model's scores alongside those of the untrained base model.
-
-The training data and the test puzzles must not overlap. If a test position appeared in training, a high score could reflect memorization rather than chess ability. We check for and remove any such overlap (see *data leakage*).
-
-### Post-training methods
-
-- **Supervised fine-tuning (SFT)** trains the model to reproduce reference answers. Given a board position, the model learns to assign high probability to the move a strong player made. This is the first method we apply, and the other two build on its result.
-- **Direct preference optimization (DPO)** trains on pairs of answers to the same position: one preferred and one rejected. In our case, the preferred move is Stockfish's best move and the rejected move is a clearly worse legal move. The model learns to make the preferred answer more likely than the rejected one. DPO learns from a fixed dataset of such pairs.
-- **Reinforcement learning (RL)** has not been covered in the course yet; we will apply it later in the project. In brief: the model generates its own answers, a *reward function* scores each one, and training adjusts the model so that high-scoring answers become more likely. Unlike SFT, RL needs no example answers, only a way to score them. Here the score will come from Stockfish, based on whether the move is legal and how close it is to the engine's best move.
-
-### Evaluation metrics
-
-- **Puzzle accuracy** (primary): the percentage of puzzles in which the model's move matches the solution.
-- **Legal-move rate:** the percentage of the model's answers that are legal moves in the given position.
-- **Average centipawn loss (ACPL):** for legal moves, how much worse the model's move is than Stockfish's best move, measured in centipawns. Lower is better.
+**Metrics.**
+- **Puzzle accuracy** (primary): the percentage of puzzles solved.
+- **Legal-move rate:** the percentage of answers that are legal moves.
+- **ACPL:** how much worse a legal move is than Stockfish's best move, in centipawns. Lower is better.
 
 ---
 
 ## Glossary
 
-**Models and training**
-- **Language model (LLM):** a model trained on large amounts of text to predict the next token. It produces a chess move by generating text, for example `e2e4`.
-- **Parameters:** the internal numerical values that training adjusts.
-- **Gemma 4 E2B:** the model we use, released by Google. It has about 2.3 billion effective parameters (about 5.1 billion including its embedding tables).
-- **Instruction-tuned ("-it"):** a version of the model that Google has already trained to follow instructions in a chat format. We start from `gemma-4-E2B-it`.
-- **Base model:** the model as released, before any of our training. It serves as our baseline.
-- **Post-training / fine-tuning:** further training of an already trained model on task-specific data.
-- **LoRA (low-rank adaptation):** a fine-tuning method that keeps the original parameters frozen and trains a small number of additional parameters added to selected layers. It greatly reduces memory and compute.
-- **Adapter:** the set of additional parameters trained by LoRA. It is saved separately from the base model.
-- **QLoRA:** LoRA applied to a base model stored in compressed 4-bit form, which further reduces GPU memory use.
-- **Token:** the unit of text a model reads and generates, often a fragment of a word. For example, the model sees `e2e4` as four tokens: `e`, `2`, `e`, `4`.
-- **Tokenizer:** the component that converts text into tokens.
-- **Chat template:** the fixed format that marks who is speaking in each message. An instruction-tuned model expects its input in this format.
-- **Greedy decoding:** always choosing the most likely next token. This makes outputs deterministic, so every model is evaluated under the same conditions.
-- **Seed:** a fixed initial value for random processes (sampling, shuffling), so that results can be reproduced exactly.
-- **Reward function:** in RL, the function that assigns a score to each output the model generates.
-- **GRPO (group relative policy optimization):** the RL method we plan to use. For each position it samples several answers and scores each one relative to the group's average.
-
-**Chess**
-- **Stockfish:** a free, open-source chess engine, much stronger than any human player. We use it as our reference for how good a move is.
-- **Centipawn:** one hundredth of a pawn, the unit Stockfish uses to evaluate positions. A score of +100 means White is ahead by roughly one pawn; negative scores favor Black.
-- **Search depth:** how many moves ahead Stockfish searches. We use a fixed depth of 12, so evaluations are comparable.
-- **FEN (Forsyth–Edwards Notation):** a single line of text that encodes a full board position: piece placement, side to move, and castling rights. The starting position is `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`.
-- **UCI notation:** writes a move as its origin and destination squares, for example `e2e4`.
-- **SAN (standard algebraic notation):** the notation used in chess literature, for example `e4`, `Nf3`, `O-O` (castling).
-- **Lichess puzzle:** a position taken from a real game in which one move is clearly best, rated by difficulty.
-
-**Experimental design**
-- **Test set:** the 1,000 puzzles used for final evaluation. They are never used for training or for tuning settings.
-- **Development (dev) set:** a separate set of 200 puzzles, used for quick checks during development.
-- **Data leakage:** overlap between training data and test data, which inflates test scores. We prevent it by removing any training position identical to a test or dev position.
-- **Ablation:** an experiment that changes a single factor (for example, the rating threshold) while keeping everything else fixed, to measure how much that factor matters.
+- **Base model:** the model as released, before our training; our baseline.
+- **Parameters:** the numerical values inside a model that training adjusts.
+- **LoRA:** fine-tuning that freezes the original parameters and trains a small set of added ones (the **adapter**). **QLoRA** does the same with the base model compressed to 4 bits, to save GPU memory.
+- **Token:** the unit of text a model reads and writes. The model sees `e2e4` as four tokens.
+- **Chat template:** the fixed format that marks who is speaking in each message.
+- **Greedy decoding:** always choosing the most likely next token, so results are reproducible.
+- **Seed:** a fixed starting value for random choices, so results can be repeated exactly.
+- **Stockfish:** a free chess engine, far stronger than any human; our reference for move quality.
+- **Centipawn:** one hundredth of a pawn. +100 means White is about one pawn ahead.
+- **FEN:** a one-line text encoding of a full board position.
+- **UCI / SAN:** two ways to write a move: `e2e4` (from-square, to-square) and `e4` or `Nf3` (standard chess notation).
+- **Test set / dev set:** 1,000 puzzles for final evaluation (never used for training or tuning) and 200 separate puzzles for checks during development.
+- **Data leakage:** overlap between training and test data, which inflates test scores.
+- **Ablation:** an experiment that changes one factor and keeps everything else fixed.
 
 ---
 
@@ -76,12 +51,31 @@ The training data and the test puzzles must not overlap. If a test position appe
 | Location | Contents |
 |---|---|
 | `notebooks/` | The work, step by step, with results shown inline. Start here. |
-| `configs/` | All experiment settings. Changing an experiment means editing these files. |
+| `configs/` | All experiment settings. |
 | `src/chesslm/` | Shared code used by the notebooks. |
 | `results/` | Scores for each run, and figures. |
-| `data/eval/` | The fixed test and dev puzzles. Every model is graded on these. |
-| `docs/project_notes.md` | This document. |
+| `data/eval/` | The fixed test and dev puzzles. |
 | `CONTRIBUTIONS.md` | A dated record of who did what. |
+
+---
+
+## Planned
+
+Each factor below can be changed in a config file without touching the code. An ablation changes one factor, retrains, and grades the result with the same evaluation.
+
+| Factor | Kind | Setting (file) | Default | Alternatives |
+|---|---|---|---|---|
+| Move notation | Input features | `notation` (`prompt.yaml`) | UCI | SAN |
+| Move history in the prompt | Input features | `history_moves` (`prompt.yaml`) | 0 (board only) | 1 (last move) |
+| Legal moves listed in the prompt | Input features | `show_legal_moves` (`prompt.yaml`) | off | on (raise `max_seq_length` to 384) |
+| Player rating threshold | Training data | `min_elo` (`data.yaml`) | 2000 | e.g. 1600, 2200 |
+| Games against bot accounts | Training data | `exclude_bots` (`data.yaml`) | excluded | included |
+| Number of training examples | Training data | `train_examples` (`sft.yaml`) | 20,000 | e.g. 5,000, 50,000 |
+| LoRA rank | Hyperparameters | `rank` (`sft.yaml`) | 16 | e.g. 8, 32 |
+| Learning rate | Hyperparameters | `learning_rate` (`sft.yaml`) | 2e-4 | e.g. 1e-4, 5e-4 |
+| Model size | Model | `id` (`sft.yaml`) | Gemma 4 E2B | Gemma 4 E4B |
+
+DPO and RL will add their own factors, for example the DPO rejection threshold and the RL reward (sparse or dense, following Hwang et al., cited in our draft).
 
 ---
 
@@ -89,116 +83,67 @@ The training data and the test puzzles must not overlap. If a test position appe
 
 ### Step 1: Environment setup (Nov 1)
 
-**What we built.**
-- The repository structure.
-- A Python environment with pinned package versions.
-- An installation of the Stockfish engine.
-- A setup notebook, [00_setup_check.ipynb](../notebooks/00_setup_check.ipynb), that verifies each component.
-
-**Why it matters.** Every later step depends on these tools. Pinning package versions ensures the code behaves identically on each machine we use (a laptop, Google Colab, and a GPU machine). Differences in results can then be attributed to the experiments rather than to the software environment.
-
-**How we know it works.** The setup notebook runs without errors on Adrian's Mac:
-- The required libraries load.
-- The Mac's GPU is detected. It is adequate for small tests but not for full training.
-- Stockfish produces sensible evaluations: the starting position is close to equal, and removing Black's queen shifts the evaluation by roughly the value of a queen.
-- The Gemma 4 tokenizer loads, and we can inspect the exact chat format the model receives.
-
-**Key numbers** (from [00_setup_check.ipynb](../notebooks/00_setup_check.ipynb)):
-- **Stockfish 19 at depth 12:**
-  - starting position: +32 centipawns
-  - position with Black's queen removed: +886 centipawns
-- **Model:** `google/gemma-4-E2B-it`, with a vocabulary of 262,144 tokens.
-- **Token counts:**
-  - `e2e4` (UCI): 4 tokens
-  - `e4` (SAN): 2 tokens
-  - `Nf3` (SAN): 3 tokens
-  - the starting position as a FEN: 30 tokens
-
-**Choices we made and why.**
-- **Gemma 4 E2B:** it fits on a 12 GB GPU with QLoRA, and it can be downloaded without an access request.
-- **Starting SFT settings:** taken from the project plan (LoRA rank 16, learning rate 2e-4, one epoch). They are stored in `configs/sft.yaml`, and each is a candidate for ablation.
-- **Move notation:** to be decided in Step 2. UCI and SAN tokenize differently, which suggests notation may affect learning. That makes it a natural ablation.
-
-**Limitations / open questions.**
-- The full model weights (~10 GB) have not been downloaded yet; this happens in Step 4.
-- The machine for training is still to be decided: the GPU laptop, Colab, or Databricks.
+- **What we built:** the repository, a Python environment with pinned package versions, Stockfish, and a setup notebook ([00_setup_check.ipynb](../notebooks/00_setup_check.ipynb)).
+- **Why it matters:** pinned versions make the code behave identically on every machine, so differences in results come from the experiments, not the setup.
+- **How we know it works:** the setup notebook runs without errors. Stockfish rates the starting position as nearly equal (+32 centipawns) and a position without Black's queen as about a queen up (+886).
+- **Choices:** Gemma 4 E2B, because it fits on a 12 GB GPU with QLoRA and needs no access request.
 
 ### Step 2: Data pipeline (Nov 1)
 
-**What we built.** A pipeline, [01_data_pipeline.ipynb](../notebooks/01_data_pipeline.ipynb) with its code in `src/chesslm/data.py`, that produces two kinds of data:
-- **Evaluation sets.** A test set of 1,000 Lichess puzzles and a dev set of 200, with equal numbers in four rating bands. They are saved in `data/eval/` and committed, so every model, including Nathan's DPO and RL models, is graded on the same puzzles.
-- **Training data.** 150,000 positions sampled from 50,000 games between players rated 2000 or higher. Each position is paired with the move that was played. The positions are split by game into training and validation sets.
+- **What we built:** [01_data_pipeline.ipynb](../notebooks/01_data_pipeline.ipynb) builds a 1,000-puzzle test set and a 200-puzzle dev set (equal numbers in four rating bands, committed in `data/eval/`), and 150,000 training positions from 50,000 games.
+- **Why it matters:** every model is graded on the same fixed puzzles, and the training data determines what SFT can learn.
+- **How we know it works:** unit tests cover the puzzle format, filters, sampling, and splits. No training position appears in the test or dev sets.
+- **Key numbers** ([results/data_stats.json](../results/data_stats.json)):
 
-**Why it matters.** The evaluation sets define how every model in the project is measured, so they are fixed once and never changed. The training data determines what SFT can learn: the model can only imitate the moves it sees.
+  | Filter step | Games remaining |
+  |---|---|
+  | Games read (September 2025) | 1,404,031 |
+  | Both players rated 2000+ | 245,522 |
+  | No bot accounts | 242,573 |
+  | Not bullet (≥ 3 minutes) | 92,501 |
+  | Ended normally | 70,904 |
+  | At least 20 moves (first 50,000 kept) | 50,000 |
 
-**How we know it works.**
-- Nine unit tests (`tests/test_data.py`) cover the puzzle format, the game filters, position sampling, leakage removal, and the train/validation split.
-- The notebook shows a puzzle before and after the opponent's move and confirms that the answer is legal in the solver's position.
-- No training position appears in the test or dev sets (overlap after removal: 0).
-- The test and dev sets share no puzzles, and the training and validation sets share no games.
+  Training: 142,500 positions (47,500 games). Validation: 7,500 positions (2,500 games).
+- **Choices:**
+  - Bot accounts are excluded: a cluster of players near 3000 turned out to be 98% bots, and we train on human play.
+  - Three positions per game, skipping the first five moves, which are mostly memorized openings.
+  - Dataset versions are pinned, so the data can be rebuilt exactly.
+- **Limitations:**
+  - Puzzles are sharp tactical positions, while most game positions are quiet, so SFT on games may transfer only partly to puzzles.
+  - Equal rating bands give hard puzzles extra weight, so per-band accuracy is the more informative number.
 
-**Key numbers** (from [results/data_stats.json](../results/data_stats.json)):
+### Step 3: Prompts and reading the answer (Nov 1)
 
-| Filter step | Games remaining |
-|---|---|
-| Games read (one file, September 2025) | 1,404,031 |
-| Both players rated 2000+ | 245,522 |
-| No bot accounts | 242,573 |
-| Not bullet (≥ 3 minutes per player) | 92,501 |
-| Ended normally | 70,904 |
-| At least 20 moves (first 50,000 kept) | 50,000 |
+- **What we built:** `src/chesslm/prompts.py` turns a position into the model's prompt (the board as a FEN, whose turn it is, and an instruction to reply with one move). It also reads the move back from the reply as *legal*, *illegal*, or *unparseable*.
+- **Why it matters:** every model is asked the same question and graded by the same reader. Separating illegal from unparseable answers distinguishes misunderstanding the rules from ignoring the instruction, as in the LLM CHESS benchmark cited in our draft.
+- **How we know it works:** 27 tests cover sentences, markdown, move numbers, check symbols, promotions, castling, and ambiguous moves. They found and fixed one bug, with castling written as `0-0-0`.
+- **Choices:**
+  - One prompt configuration (`configs/prompt.yaml`) is shared by training and evaluation.
+  - UCI is the default notation.
+  - The reader accepts both notations, so correct moves are never penalized for format.
+  - Move history is limited to the last move, because test puzzles include only the opponent's last move.
+- **Limitations:** the reader grades the first move it finds in a reply.
 
-- **Positions:** 150,000 sampled (3 per game). Training: 142,500 positions from 47,500 games. Validation: 7,500 positions from 2,500 games. Removed for overlap with the evaluation sets: 0.
-- **Test set:** 250 puzzles per band (<1200, 1200–1800, 1800–2400, 2400+). 110 are mate-in-1 puzzles.
-- **Dev set:** 50 puzzles per band.
-- **Puzzle database:** 6,157,341 puzzles.
+### Step 4: Evaluation harness (Nov 1)
 
-**Choices we made and why.**
-- **Rating threshold 2000** for both players, so the training moves are strong (ablation candidate).
-- **Bot accounts excluded.** The rating histogram showed a cluster of players near 3000; 98% of those were Lichess bot accounts, which are chess engines. Since we train on human play, we exclude games involving bots. This setting can be switched off (ablation candidate).
-- **Three positions per game, skipping the first five moves.** Several positions per game give variety without many near-identical examples. Opening moves are largely memorized sequences.
-- **Equal puzzles per rating band**, so we can report accuracy at each difficulty level.
-- **Both notations stored** (UCI and SAN). UCI is the default for prompts; SAN is available as an ablation (applied in Step 3).
-- **Pinned dataset versions.** The puzzle database is updated regularly; pinning the version makes the data reproducible.
+- **What we built:** `src/chesslm/evaluate.py` and [02_eval_base_model.ipynb](../notebooks/02_eval_base_model.ipynb). They grade every puzzle on accuracy (any checkmating move counts in mate-in-1 puzzles), legality, and centipawn loss (Stockfish depth 12, capped at 1000). Each run is saved to `results/`.
+- **Why it matters:** all models are graded by this same code, on the same puzzles, with the same settings.
+- **How we know it works:** unit tests check the grading rules and Stockfish scoring, and the pipeline ran end to end on dev puzzles.
+- **Key numbers:** base-model scores will be added after the GPU run. On a few dev puzzles, the base model answered in SAN even when asked for UCI.
+- **Choices:**
+  - Greedy decoding, since Gemma samples randomly by default.
+  - Only the language model is loaded (4.63 billion parameters, about 9.3 GB), skipping the unused image and audio encoders, so it fits on a 12 GB GPU.
+  - The model runs on an RTX 5070 Ti; a 16 GB Mac needed about 54 seconds per puzzle.
+- **Limitations:** ACPL covers legal moves only, so it can rest on few moves when legality is low.
 
-**Limitations / open questions.**
-- **Puzzles and games differ.** Puzzles are tactical positions with one clearly best move; most game positions are quieter, and the move a 2000-rated player chose is not always the best one. SFT on games may therefore transfer only partly to puzzles. DPO and RL, which use Stockfish's judgment, may help here.
-- **Overall test accuracy is not a natural average.** Equal bands give hard puzzles more weight than they have in the full database, so the per-band numbers are the more informative ones.
-- **The leakage check catches identical positions only.** Very similar positions can still appear in both sets.
-- **All games come from one month** (September 2025).
-- **The first SFT run uses a subsample** of the training data (Step 5), as planned.
+### Step 5: First SFT run (Nov 1; training runs on the GPU)
 
-### Step 3: Prompts and reading the model's answer (Nov 1)
-
-**What we built.** Two functions in `src/chesslm/prompts.py`, demonstrated in Part 6 of [01_data_pipeline.ipynb](../notebooks/01_data_pipeline.ipynb):
-- **The prompt builder** turns a position into the chat message the model receives: the board as a FEN, whose turn it is, and an instruction to reply with one move.
-- **The move reader** finds the first move in the model's reply and classifies it as *legal*, *illegal* (it looks like a move but is not allowed in the position), or *unparseable* (no move found).
-
-**Why it matters.** Every model in the project, whether base, SFT, DPO, or RL, is asked the same question in the same way and graded by the same reader. Otherwise, differences in scores could come from differences in wording rather than from training. Separating illegal from unparseable answers distinguishes a model that misunderstands chess rules from one that fails to follow the instruction. The LLM CHESS benchmark, cited in our draft, makes a similar distinction.
-
-**How we know it works.**
-- 25 test cases (`tests/test_prompts.py`) check the reader on plain moves, extra whitespace, moves inside sentences, markdown formatting, move numbers, check and mate symbols, promotions, castling (including castling written with zeros), ambiguous moves, and text with no move.
-- Two further tests check the prompt contents.
-- These tests found one bug, in reading queenside castling written as `0-0-0`, which is now fixed.
-
-**Key numbers** (Part 6 of the notebook; prompt length in tokens over 500 training positions):
-
-| Prompt option | Mean | Max |
-|---|---|---|
-| Board only (default) | 90 | 102 |
-| Board + last move | 98 | 110 |
-| Board + legal moves | 224 | 323 |
-
-**Choices we made and why.**
-- **One shared prompt configuration** (`configs/prompt.yaml`) for training and evaluation, so they cannot drift apart.
-- **UCI as the default notation.** It is the easiest to read back unambiguously; SAN is available as an ablation.
-- **Board only as the default prompt.** The other two options are ablation candidates:
-  - **Board + last move:** a short version of the move history. Longer move sequences helped in ChessLLM, cited in our draft.
-  - **Board + legal moves:** tests whether listing the legal moves helps.
-- **History limited to the last move.** Test puzzles come with only the opponent's last move, not the full game. To keep training and evaluation comparable, we stored the last move with every puzzle and limit the history option accordingly.
-- **The reader accepts both notations** regardless of which one the prompt asks for, so a correct move is never penalized for its format.
-
-**Limitations / open questions.**
-- The reader uses the first move it finds. A model that discusses several moves before choosing one would be graded on the first.
-- The legal-moves option produces prompts of up to 323 tokens, above the current training limit of 256. That limit must be raised to 384 if we run this ablation.
-- The prompt wording itself is fixed. Other phrasings might give different base-model results.
+- **What we built:** `src/chesslm/train_sft.py` and [03_sft_first_run.ipynb](../notebooks/03_sft_first_run.ipynb). The notebook runs a short trial (500 examples), then the real run (20,000 examples). It then grades the result and makes the comparison table and figures.
+- **Why it matters:** SFT is the first post-training method and the starting point for DPO and RL.
+- **How we know it works:** on a small model of the same architecture, the loss decreased and the adapter saved correctly. The loss covers only the answer, not the prompt.
+- **Key numbers:** loss curves, test scores, and compute used will be added after the GPU run.
+- **Choices:**
+  - Settings from the project plan: LoRA rank 16 on the attention and MLP layers, learning rate 2e-4, one epoch, effective batch size 32, seed 42.
+  - QLoRA (4-bit), to fit in 12 GB of GPU memory.
+- **Limitations:** one run with one seed, so differences of a few percentage points may be noise.
