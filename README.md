@@ -11,6 +11,27 @@ This project studies how post-training methods improve a small language model's 
 - **Why?** games supply many varied, realistic positions to learn from, while puzzles each have one verified answer, which makes them a fair exam. Keeping the two separate means test scores measure chess skill (not memorization).
 - **Planned comparison:** training on puzzles (different ones from the test set), or on a mix of puzzles and games, instead of games only.
 
+## Status
+
+**Done**
+- Data pipeline, evaluation, and SFT training code (notebooks 00–03), tested on a small scale
+- DPO preference pairs and RL reward (notebook 04)
+- Report outline, abstract, and related work (Overleaf)
+
+**Still to do for the progress report (Nov 6)**
+- Run notebooks 02–03 on the GPU to get the base vs. SFT results (5070 Ti teammate)
+- Run DPO and a first RL run from the SFT model, for preliminary results (Nathan)
+- Write the report: progress, contributions, results (Hannah)
+- Agree on the updated timeline (everyone)
+
+**Later:** ablations, combined methods (e.g. SFT → DPO → RL), games against Stockfish, ChessQA, a chessboard visualizer.
+
+## Contributions
+
+- **Adrian:** repository and environment, data pipeline, prompts and move parsing, evaluation, SFT training code, and DPO/RL inputs (details in `CONTRIBUTIONS.md`).
+- **Hannah:** Overleaf document, report outline, abstract, and related work.
+- **Nathan:** to be added.
+
 ---
 
 ## Next steps: run the model on the GPU
@@ -62,6 +83,8 @@ Open each notebook in VS Code, choose the `.venv` kernel, and click **Run All**.
 The times are estimates. Each notebook shows its progress while it runs.
 
 ### 4. Send the results back
+
+**Why:** the progress report needs these results (the base vs. SFT table, the figures, and the compute used), and Nathan's DPO and RL training starts from the SFT model.
 
 ```bash
 git add results notebooks
