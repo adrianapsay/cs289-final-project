@@ -11,7 +11,7 @@ This project studies how post-training methods improve a small language model's 
 - **Training: Lichess games.** About 142,500 positions from games between players rated 2000+, each paired with the move that was played. Games give a large and varied set of realistic positions.
 - **Testing: Lichess puzzles.** 1,000 puzzles (plus 200 for quick checks), each with one correct move, so answers can be graded objectively. Puzzles are never used for training, and no training position appears among them.
 - **Why?** games supply many varied, realistic positions to learn from, while puzzles each have one verified answer, which makes them a fair exam. Keeping the two separate means test scores measure how well the model handles positions it has never seen (not whether it remembers answers from training).
-- **Planned:** training on puzzles (different ones from the test set), or on a mix of puzzles and games, instead of games only.
+- **Planned:** training on Stockfish's best move for each game position instead of the move the player made, and possibly on puzzles (different ones from the test set).
 
 ## Status
 
@@ -37,7 +37,7 @@ This project studies how post-training methods improve a small language model's 
 - Write the report: progress, contributions, results (Hannah)
 - Agree on the updated timeline (everyone)
 
-**By the first draft of the paper (Nov 24):** combined methods (e.g. SFT → DPO → RL), and ablations on the SFT training data and on how DPO pairs are built. See the [next steps](docs/project_notes.md#5-limitations-and-next-steps).
+**By the first draft of the paper (Nov 24):** fix DPO and RL on their own, train SFT on Stockfish's best moves, then combine methods (e.g. SFT → DPO → RL). See the [next steps](docs/project_notes.md#5-limitations-and-next-steps).
 
 ## Contributions
 
@@ -123,7 +123,7 @@ Keep the laptop plugged in and stop it from sleeping while notebooks run.
 
 ### Push the results
 
-**Why:** the progress report needs these results (the comparison table, the figures, and the compute used).
+The report needs every model's scores, figures, and compute, so push after each run:
 
 ```bash
 git add results notebooks

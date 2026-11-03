@@ -39,7 +39,7 @@ It helps to start with how the model produces a move. The model reads the prompt
 
 **DPO** (direct preference optimization) trains on pairs of answers to the same position: a *chosen* move (Stockfish's best) and a *rejected* move (one that loses a lot). It makes the chosen move more likely *relative to* the rejected one, compared with where the model started. It only cares about this difference. It does not require the chosen move itself to become more likely, and it says nothing about any other move.
 
-**RL** (reinforcement learning) shows the model no answers at all. The model generates its own answers, a *reward* scores each one, and training makes high-reward answers more likely. Our reward comes from Stockfish: −1 for an illegal or unparseable answer, and for a legal move, more the closer it is to the best move. RL is the only method that directly penalizes the model's own illegal moves. The specific algorithm we use is **GRPO**. For each position, the model samples 8 answers, and each one is compared with the group's average reward: answers above the average become more likely, and answers below it less likely. In our settings, this is the classic *policy gradient with a baseline*, where the baseline is the group average. We chose GRPO because it judges each answer simply by comparing it with the model's other answers to the same position, so unlike PPO, the most common alternative, it needs no second large network and fits on our 12 GB GPU.
+**RL** (reinforcement learning) shows the model no answers at all. The model generates its own answers, a *reward* scores each one, and training makes high-reward answers more likely. Our reward comes from Stockfish: −1 for an illegal or unparseable answer, and for a legal move, more the closer it is to the best move. RL is the only method that directly penalizes the model's own illegal moves. The specific algorithm we use is **GRPO**. For each position, the model samples 8 answers, and each one is compared with the group's average reward: answers above the average become more likely, and answers below it less likely. In our settings, this is the classic *policy gradient with a baseline*, where the baseline is the group average. We chose GRPO because it judges each answer simply by comparing it with the model's other answers to the same position.
 
 | | SFT | DPO | RL (GRPO) |
 |---|---|---|---|
@@ -67,7 +67,7 @@ All three train a small add-on to the model (a LoRA adapter) while the original 
 
 Exact settings for every step are in `configs/`.
 
-### 00 · Setup check
+### 00 · Setup
 
 This notebook checks that the libraries load, shows which GPU is available, tests Stockfish, and downloads the model's tokenizer. Because Stockfish grades every move in the project, we test it on two positions with known answers. The starting position scores about 0 (+32 centipawns), and the same position without Black's queen scores about a queen more (+886), which confirms the sign and the scale of its scores. The notebook also shows how the model splits moves into tokens.
 
@@ -167,14 +167,20 @@ Our proposal asks whether a method helps by reducing blunders or by improving ta
 
 Before the progress report (Nov 6):
 - Done: RL (notebook 06) has run, and notebook 07 compares all four models.
-- RL settings that could keep accuracy while improving legality: a KL penalty to the SFT model (`beta` in `rl.yaml`), a smaller gap between illegal and legal answers, the sparse reward, or puzzle-like training positions. Each RL run takes about 35 minutes.
 
-Mid November, before the first draft (Nov 24):
-- Combine methods, at least SFT → DPO → RL, since our research question asks which *combination* works best.
-- Change how DPO pairs are built, as our TA suggested. Our DPO result points to options: use the SFT model's own wrong answers or illegal moves as the rejected moves, or change the 200-centipawn threshold. Each run takes about 20 minutes.
-- Change the SFT training data, as our TA also suggested: train on puzzles (not the test ones) instead of games, or change the rating threshold. Each option needs a new SFT run, so one or two at most.
+Mid November, before the first draft (Nov 24), in this order:
+
+| Step | What to try | Why at this point | Time |
+|---|---|---|---|
+| 1. Fix DPO and RL on their own | RL: a KL penalty to the SFT model (`beta` in `rl.yaml`), a smaller gap between illegal and legal answers, the sparse reward, or puzzle-like training positions. DPO: a lower learning rate, adding the SFT loss back in (TRL can combine the two) so the better move stops losing probability, or changing how pairs are built, as our TA suggested (the SFT model's own wrong or illegal answers as the rejected moves, or a different 200-centipawn threshold). | Both currently make SFT worse, so we cannot yet say whether either method helps, and that is the core of our research question. | about 20 min per DPO run, 35 per RL run |
+| 2. SFT on Stockfish's moves | Keep the same game positions, but use Stockfish's best move as the answer instead of the move the player made. | If it clearly beats `sft_v1`, it becomes the starting point for everything after it, so it comes before the combinations. | minutes to label, plus one SFT run (about 1.5 hours) |
+| 3. Combine methods | At least SFT → DPO → RL, from the best SFT model, with the DPO and RL settings that worked in step 1. | Our research question asks which combination works best, and combining methods that each make SFT worse would teach us little. | the sum of its parts |
+
+Step 2 targets a mismatch in our current SFT data. SFT copies whatever answer it is shown, so it now learns to play like a 2000+ player, who usually picks a reasonable move but not always the best one. A puzzle accepts only the best move. Training on Stockfish's choice teaches the model to find that move directly, which a higher rating threshold only approximates. It also means all three methods learn from the same source, since DPO and RL already use Stockfish.
+
+Alongside these, if time allows:
+- Other SFT data changes our TA suggested: train on puzzles (not the test ones) instead of games, or change the rating threshold. Each needs a new SFT run, so one or two at most.
 - Grade the models on held-out game positions, which separates "fewer blunders" from "better tactics" (note to self: depends on compute).
-- If RL is fast enough, compare the dense and sparse rewards.
 
 Promised in our proposal, still to decide as a team:
 - Win-loss rate in games against Stockfish (simple to run).
@@ -189,6 +195,7 @@ Each ablation changes one factor, retrains, and grades the result the same way. 
 | DPO rejected moves | to be added | a random move losing 200+ cp | the SFT model's own wrong answers; illegal moves |
 | DPO rejection threshold | `rejected_min_cp_loss` (`dpo.yaml`) | 200 | e.g. 100, 400 |
 | SFT training data | to be added | games | puzzles (not the test ones); a mix |
+| SFT answer for each position | to be added | the move the player made | Stockfish's best move |
 | Player rating threshold | `min_elo` (`data.yaml`) | 2000 | e.g. 1600, 2200 |
 | RL reward | `mode` (`rl.yaml`) | dense | sparse (following Hwang et al., cited in our draft) |
 | Legal moves in the prompt (optional) | `show_legal_moves` (`prompt.yaml`) | no | yes |
