@@ -18,12 +18,22 @@ This project studies how post-training methods improve a small language model's 
 **Done**
 - Data pipeline, evaluation, and SFT training code (notebooks 00–03)
 - DPO preference pairs and RL reward (notebook 04)
-- Base and SFT results on the GPU, then DPO and RL training code and a first DPO run (notebooks 02, 03, 05)
-- Analysis of the results so far (notebook 07)
+- Base and SFT results on the GPU, then DPO and RL training code and first DPO and RL runs (notebooks 02, 03, 05, 06)
+- Analysis of the results for all four models (notebook 07)
 - Report outline, abstract, and related work (Overleaf, thanks Hannah!)
 
+**Results so far** (1,000 test puzzles; details in `results/progress_report_table.md` and notebook 07)
+
+| Model | Accuracy | Legal answers | Training compute |
+|---|---|---|---|
+| base | 2.8% | 41% | – |
+| SFT | 7.8% | 72% | 6.6 GPU-hours* (1.9M tokens) |
+| DPO (from SFT) | 5.9% | 63% | 0.33 GPU-hours (0.87M tokens) |
+| RL / GRPO (from SFT) | 3.3% | 82% | 0.54 GPU-hours (1.5M tokens) |
+
+\*SFT ran before a memory fix and was slowed by it (its trial ran about 5 times faster per step), so compare methods by tokens rather than hours.
+
 **Still to do for the progress report (Nov 6)**
-- First RL run (notebook 06), then rerun notebook 07 (Nathan)
 - Write the report: progress, contributions, results (Hannah)
 - Agree on the updated timeline (everyone)
 
@@ -33,7 +43,7 @@ This project studies how post-training methods improve a small language model's 
 
 - **Adrian:** repository and environment, data pipeline, prompts and move parsing, evaluation, SFT training code, and DPO/RL inputs (details in `CONTRIBUTIONS.md`).
 - **Hannah:** Overleaf document, report outline, abstract, and related work.
-- **Nathan:** to be added.
+- **Nathan:** GPU runs (base, SFT, DPO, RL), DPO and RL training code, the memory fix that lets training fit in 12 GB, and the RL analysis (details in `CONTRIBUTIONS.md`).
 
 ## For the report (data and methods section)
 
@@ -54,8 +64,8 @@ Key facts for the Data and Methods sections. More detail is in `docs/project_not
 - **Model:** Gemma 4 E2B, instruction-tuned. Only the language part is used: 4.63B parameters, about 2.3B "effective".
 - **Prompt:** the board as a FEN, whose turn it is, and "reply with the best move". It is the same for every model, in training and testing.
 - **SFT:** LoRA (rank 16) on 20,000 examples, one epoch. The model learns to produce the move that was played.
-- **DPO:** 4,788 pairs. The preferred move is Stockfish's best; the rejected move is a legal move losing 200+ centipawns (our metric that grades how worse the model's move is than Stockfish's best).
-- **RL (GRPO):** the model's own answers are scored by Stockfish. Illegal answers get −1; legal moves score higher the closer they are to Stockfish's best.
+- **DPO:** 4,788 pairs. The preferred move is Stockfish's best; the rejected move is a legal move losing 200+ centipawns (our metric that grades how worse the model's move is than Stockfish's best). Training continues the SFT adapter for one epoch over 95% of the pairs (5% held out), with β = 0.1 and the SFT model as the reference.
+- **RL (GRPO):** the model's own answers are scored by Stockfish. Illegal answers get −1; legal moves score higher the closer they are to Stockfish's best. Training continues the SFT adapter on 2,000 training positions, with 8 sampled answers per position and no KL penalty.
 - **Evaluation:**
   - puzzle accuracy (primary; overall and per rating band)
   - legal-move rate (illegal and unparseable answers counted separately)
@@ -64,17 +74,16 @@ Key facts for the Data and Methods sections. More detail is in `docs/project_not
 
 ---
 
-## Next steps (Nathan)
+## Running on a GPU
 
-Everything below runs on your GPU, in this order. Results pushed by Wed Nov 4.
+Everything below runs on an NVIDIA GPU (12 GB is enough), in this order:
 
 1. **Set up** (once, about 20 min). See [Setup](#setup).
 2. **Base and SFT results.** Run notebooks `00` → `03`, then push the results. See [Run the notebooks](#run-the-notebooks) and [Push the results](#push-the-results).
 3. **DPO and RL inputs.** Run notebook `04` (about 5 min).
-4. **DPO.** Train from the SFT model with the pairs from `04`, grade, and push. See [DPO and RL training](#dpo-and-rl-training).
-5. **RL.** Do a first GRPO run from the SFT model with the reward from `04`, grade, and push.
-
-Tip: while `03` is training, write the DPO and RL training code, so it is ready when the SFT model is.
+4. **DPO.** Run notebook `05`: it trains from the SFT model with the pairs from `04`, and grades the result.
+5. **RL.** Run notebook `06`: a GRPO run from the SFT model with the reward from `04`, graded and compared with the other three models.
+6. **Analysis.** Run notebook `07`, then push.
 
 ### Setup
 
@@ -106,12 +115,15 @@ Open each notebook in VS Code, choose the `.venv` kernel, and click **Run All**.
 | `02_eval_base_model` | Grades the untrained model on the puzzles (downloads the 10 GB model the first time). | up to 30 min |
 | `03_sft_first_run` | Trains the SFT model, grades it, and makes the comparison table and figures. | up to 1 hour |
 | `04_dpo_rl_inputs` | Builds the DPO pairs and shows the RL reward (no GPU needed). | 5 min |
+| `05_dpo_first_run` | Trains the SFT model further with DPO, and grades it. | 25 min |
+| `06_grpo_first_run` | Trains the SFT model further with RL (GRPO), grades it, and makes the four-model comparison table and figures. | 40 min |
+| `07_understanding_results` | Explains why the models score as they do, from the saved results (no GPU needed). | 3 min |
 
 Keep the laptop plugged in and stop it from sleeping while notebooks run.
 
 ### Push the results
 
-**Why:** the progress report needs these results (the base vs. SFT table, the figures, and the compute used).
+**Why:** the progress report needs these results (the comparison table, the figures, and the compute used).
 
 ```bash
 git add results notebooks
@@ -119,14 +131,13 @@ git commit -m "Base model and SFT results"
 git push
 ```
 
-Keep `checkpoints/sft_v1/`: it is the SFT model, and DPO and RL start from it. Back it up (zipped) to the team drive, since it is not on GitHub.
+Keep `checkpoints/sft_v1/`: it is the SFT model, and DPO and RL start from it. Back it up (zipped) to the team drive, since it is not on GitHub. The same goes for `checkpoints/dpo_v1/` and `checkpoints/grpo_v1/`.
 
 ### DPO and RL training
 
-- The end of `04_dpo_rl_inputs` shows the few lines that plug the pairs and the reward into TRL's `DPOTrainer` and `GRPOTrainer`.
-- Start both from the SFT model (`checkpoints/sft_v1/`). Settings are in `configs/dpo.yaml` and `configs/rl.yaml`.
-- Grade each model like notebooks 02 and 03 do: `evaluate`, then `save_run` with the run names `dpo_v1` and `grpo_v1`. Their scores then appear in `results/summary.csv` next to base and SFT, and the comparison table and figures can include them.
-- Push the results the same way as above.
+- Both start from the SFT model (`checkpoints/sft_v1/`) and keep training its LoRA adapter. Settings are in the `training` sections of `configs/dpo.yaml` and `configs/rl.yaml`; the code is in `src/chesslm/train_dpo.py` and `src/chesslm/train_rl.py`.
+- For DPO, a frozen copy of the SFT adapter is the reference model, so `beta` limits how far DPO moves from the SFT model (not from the base model).
+- Each model is graded like the others, with the run names `dpo_v1` and `grpo_v1`. Their scores appear in `results/summary.csv` next to base and SFT.
 
 ### If something goes wrong
 
@@ -135,6 +146,8 @@ Keep `checkpoints/sft_v1/`: it is the SFT model, and DPO and RL start from it. B
 | `CUDA out of memory` | Close other apps that use the GPU. Then lower `batch_size` in `configs/eval.yaml` (to 4) or `configs/sft.yaml` (to 2), and run the notebook again. |
 | `00_setup_check` says "CPU only" | PyTorch was installed without GPU support. Run the `pip install torch ...` line again, then restart the notebook. |
 | `Stockfish not found` | Check `STOCKFISH_PATH`, then restart VS Code. |
+| The model download stops partway (no network traffic, no progress) | Stop the notebook, delete the `.incomplete` file in `%USERPROFILE%\.cache\huggingface\hub\models--google--gemma-4-E2B-it\blobs\`, run `setx HF_HUB_DISABLE_XET 1`, open a new terminal, and run the notebook again. |
+| `DLL load failed ... An Application Control policy has blocked this file` | Windows Smart App Control blocked a library file it does not trust (it happened with pandas 3.1.0). Install pandas 2.3.3 instead (`pip install pandas==2.3.3`), which it accepts; the project works with either. |
 | Anything else | Send Adrian the error message. |
 
 ---

@@ -62,7 +62,7 @@ All three train a small add-on to the model (a LoRA adapter) while the original 
 | [03](../notebooks/03_sft_first_run.ipynb) SFT | trains with SFT and grades the result | yes |
 | [04](../notebooks/04_dpo_rl_inputs.ipynb) DPO and RL inputs | builds the DPO pairs and the RL reward | no |
 | [05](../notebooks/05_dpo_first_run.ipynb) DPO | trains with DPO and grades the result | yes |
-| [06](../notebooks/06_grpo_first_run.ipynb) RL | trains with GRPO and grades the result (not run yet) | yes |
+| [06](../notebooks/06_grpo_first_run.ipynb) RL | trains with GRPO, grades the result, and compares all four models | yes |
 | [07](../notebooks/07_understanding_results.ipynb) Understanding the results | explains *why* the models score as they do | no |
 
 Exact settings for every step are in `configs/`.
@@ -118,7 +118,7 @@ This notebook trains the DPO model on 4,549 pairs, starting from the SFT model, 
 
 ### 06 · RL
 
-This notebook trains the RL model with GRPO, starting from the SFT model. It uses 2,000 training positions, samples 8 answers for each, and scores them with the dense reward. It then grades the model and compares all four models. It is written but not yet run.
+This notebook trains the RL model with GRPO, starting from the SFT model. It uses 2,000 training positions, samples 8 answers for each (16,000 answers in all, each scored by Stockfish with the dense reward), and has no KL penalty holding it close to the SFT model. Training took 0.54 GPU-hours. The notebook then grades the model and makes the comparison table and figures for all four models.
 
 ### 07 · Understanding the results
 
@@ -136,6 +136,7 @@ All results are on the 1,000 test puzzles. The figures and calculations are in [
 | Base | 2.8% | 41% | 6.8% |
 | SFT | 7.8% | 72% | 10.8% |
 | DPO | 5.9% | 63% | 9.3% |
+| RL (GRPO) | 3.3% | 82% | 4.0% |
 
 The first row is a reference point: picking a random legal move solves 5.6% of the puzzles. The last column separates two questions: can the model produce a valid move, and does it choose well among valid moves?
 
@@ -145,7 +146,7 @@ The first row is a reference point: picking a random legal move solves 5.6% of t
 
 **DPO** made the SFT model worse (7.8% → 5.9%), and this drop is unlikely to be chance. The training logs show why. DPO only asks for the better move to become more likely *than* the worse one, and the model achieved this by making *both* less likely: the better move ended about 20 times less likely than under SFT, the worse one about 500 times less likely ([figure](../results/figures/dpo_diagnostics.png)). Since the probabilities of all possible answers add up to 1, the removed probability went to other answers, including illegal ones: 155 answers that were legal under SFT became illegal. So DPO taught the model to prefer Stockfish's move over a bad one, but not to avoid illegal moves. This is one run with one setting, so it does not show that DPO cannot help.
 
-**RL** has not run yet. Because its reward directly penalizes illegal answers, the weakness SFT left and DPO made worse, the legal-move rate is the first thing to check.
+**RL** fixed the weakness it targets and lost accuracy doing so. Its reward penalizes illegal answers, and RL has the most legal answers of any model (82%, up from SFT's 72%). But accuracy fell from 7.8% to 3.3%, a drop that is statistically clear, and when its answer is legal it is right less often than random (4.0% vs. 5.6%). The kind of moves it plays shows why: 41% of its legal answers are pawn moves (SFT: 2%), while captures fell from 25% to 6% and checks from 18% to 8%. A quiet pawn move is almost always legal, so it earns the legal bonus and avoids the −1 penalty, but puzzles are solved by captures, checks, and other forcing moves. The reward invites this trade: an illegal answer costs −1 against at least +0.1 for any legal one, while the best and worst legal moves differ by only 1. The reward rose steadily during training while the answers became much less varied, so the model learned what the reward asked for, not what the puzzles test. Training on game positions and testing on puzzles may add to this. As with DPO, this is one run with one setting.
 
 Across all models, accuracy stays within a few points of random guessing. The model answers in a single move with no reasoning steps, and puzzles are hard. ACPL also turns out to say little on puzzles: almost every move in a puzzle is either about the best or a large mistake, so it mostly repeats what accuracy says ([figure](../results/figures/move_quality.png)).
 
@@ -165,7 +166,8 @@ Our proposal asks whether a method helps by reducing blunders or by improving ta
 **Next steps**
 
 Before the progress report (Nov 6):
-- Run RL (notebook 06), then rerun notebook 07 to compare all four models.
+- Done: RL (notebook 06) has run, and notebook 07 compares all four models.
+- RL settings that could keep accuracy while improving legality: a KL penalty to the SFT model (`beta` in `rl.yaml`), a smaller gap between illegal and legal answers, the sparse reward, or puzzle-like training positions. Each RL run takes about 35 minutes.
 
 Mid November, before the first draft (Nov 24):
 - Combine methods, at least SFT → DPO → RL, since our research question asks which *combination* works best.
@@ -178,7 +180,7 @@ Promised in our proposal, still to decide as a team:
 - Win-loss rate in games against Stockfish (simple to run).
 - ChessQA, and a comparison with ChessLLM (more work).
 - RL on puzzle positions as well as games.
-- A similar data and compute budget for every method. So far SFT used 6.6 GPU-hours and DPO 0.33, so at the least, we report compute for every run.
+- A similar data and compute budget for every method. So far SFT used 6.6 GPU-hours, DPO 0.33, and RL 0.54, so at the least, we report compute for every run. SFT's time is inflated: it ran before the memory fix described under notebook 05, when its 500-example trial ran about 5 times faster per step, so tokens seen (1.9M for SFT, 0.87M for DPO, 1.5M for RL) compare the methods better than hours.
 
 Each ablation changes one factor, retrains, and grades the result the same way. Most factors are a setting in a config file:
 
