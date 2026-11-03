@@ -29,6 +29,7 @@ def sign_test(gained, lost):
     `lost` by the old model only. If neither model were better, each disagreement would go
     either way with probability 1/2. (This is McNemar's exact test.)
     """
+    gained, lost = int(gained), int(lost)  # numpy integers would overflow in 2**n
     n = gained + lost
     if n == 0:
         return 1.0

@@ -1,4 +1,5 @@
 import chess
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -26,6 +27,7 @@ def test_sign_test():
     assert sign_test(0, 0) == 1.0
     assert sign_test(10, 0) == pytest.approx(2 / 2**10)
     assert sign_test(22, 41) == sign_test(41, 22) < 0.05
+    assert sign_test(np.int64(17), np.int64(62)) == sign_test(17, 62) < 1e-6  # counts from pandas
 
 
 def test_chance_correct_counts_every_mate():

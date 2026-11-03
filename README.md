@@ -37,11 +37,11 @@ This project studies how post-training methods improve a small language model's 
 - Write the report: progress, contributions, results (Hannah)
 - Agree on the updated timeline (everyone)
 
-**Later:** ablations, combined methods (e.g. SFT → DPO → RL), games against Stockfish, ChessQA, a chessboard visualizer.
+**By the first draft of the paper (Nov 24):** combined methods (e.g. SFT → DPO → RL), and ablations on the SFT training data and on how DPO pairs are built. See the [next steps](docs/project_notes.md#5-limitations-and-next-steps).
 
 ## Contributions
 
-- **Adrian:** repository and environment, data pipeline, prompts and move parsing, evaluation, SFT training code, and DPO/RL inputs (details in `CONTRIBUTIONS.md`).
+- **Adrian:** repository and environment, data pipeline, prompts and move parsing, evaluation, SFT training code, DPO/RL inputs, results analysis (notebook 07), and project notes (details in `CONTRIBUTIONS.md`).
 - **Hannah:** Overleaf document, report outline, abstract, and related work.
 - **Nathan:** GPU runs (base, SFT, DPO, RL), DPO and RL training code, the memory fix that lets training fit in 12 GB, and the RL analysis (details in `CONTRIBUTIONS.md`).
 
@@ -80,7 +80,7 @@ Everything below runs on an NVIDIA GPU (12 GB is enough), in this order:
 
 1. **Set up** (once, about 20 min). See [Setup](#setup).
 2. **Base and SFT results.** Run notebooks `00` → `03`, then push the results. See [Run the notebooks](#run-the-notebooks) and [Push the results](#push-the-results).
-3. **DPO and RL inputs.** Run notebook `04` (about 5 min).
+3. **DPO and RL inputs.** Run notebook `04`.
 4. **DPO.** Run notebook `05`: it trains from the SFT model with the pairs from `04`, and grades the result.
 5. **RL.** Run notebook `06`: a GRPO run from the SFT model with the reward from `04`, graded and compared with the other three models.
 6. **Analysis.** Run notebook `07`, then push.
@@ -108,16 +108,16 @@ setx STOCKFISH_PATH "C:\path\to\stockfish.exe"
 
 Open each notebook in VS Code, choose the `.venv` kernel, and click **Run All**. Wait for each one to finish before starting the next.
 
-| Notebook | What it does | Rough time |
-|---|---|---|
-| `00_setup_check` | Checks the setup. It should report your GPU (CUDA). | 1 min |
-| `01_data_pipeline` | Builds the training data (downloads 1.9 GB). | 5 min |
-| `02_eval_base_model` | Grades the untrained model on the puzzles (downloads the 10 GB model the first time). | up to 30 min |
-| `03_sft_first_run` | Trains the SFT model, grades it, and makes the comparison table and figures. | up to 1 hour |
-| `04_dpo_rl_inputs` | Builds the DPO pairs and shows the RL reward (no GPU needed). | 5 min |
-| `05_dpo_first_run` | Trains the SFT model further with DPO, and grades it. | 25 min |
-| `06_grpo_first_run` | Trains the SFT model further with RL (GRPO), grades it, and makes the four-model comparison table and figures. | 40 min |
-| `07_understanding_results` | Explains why the models score as they do, from the saved results (no GPU needed). | 3 min |
+| Notebook | What it does |
+|---|---|
+| `00_setup_check` | Checks the setup. It should report your GPU (CUDA). |
+| `01_data_pipeline` | Builds the training data (downloads 1.9 GB). |
+| `02_eval_base_model` | Grades the untrained model on the puzzles (downloads the 10 GB model the first time). |
+| `03_sft_first_run` | Trains the SFT model, grades it, and makes the comparison table and figures. |
+| `04_dpo_rl_inputs` | Builds the DPO pairs and shows the RL reward (no GPU needed). |
+| `05_dpo_first_run` | Trains the SFT model further with DPO, and grades it. |
+| `06_grpo_first_run` | Trains the SFT model further with RL (GRPO), grades it, and makes the four-model comparison table and figures. |
+| `07_understanding_results` | Explains why the models score as they do, from the saved results (no GPU needed). |
 
 Keep the laptop plugged in and stop it from sleeping while notebooks run.
 
@@ -127,7 +127,7 @@ Keep the laptop plugged in and stop it from sleeping while notebooks run.
 
 ```bash
 git add results notebooks
-git commit -m "Base model and SFT results"
+git commit -m "Describe the run, e.g. RL results"
 git push
 ```
 

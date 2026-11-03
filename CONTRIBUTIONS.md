@@ -12,6 +12,11 @@ Contributions so far.
 - **DPO and RL inputs:** 4,788 DPO preference pairs (Stockfish's best move vs. a move losing 200+ centipawns) and a Stockfish-based RL reward with dense and sparse modes.
 - **Tests and documentation:** 49 unit tests, README with GPU run instructions, and project notes.
 
+## Adrian (2026-11-03)
+
+- **Results analysis:** notebook 07, which explains why the models score as they do (confidence intervals, paired tests, a random-move baseline, reasons for illegal moves, and the DPO training diagnostics), with 10 unit tests.
+- **Project notes:** `docs/project_notes.md`, a walkthrough of every notebook, each training method, and the results.
+
 ## Nathan (2026-11-03)
 
 - **GPU runs:** ran notebooks 00–07 on an RTX 5070 Ti Laptop GPU: base model and SFT results, the DPO pairs, and the first DPO and RL runs, with every model graded on the 1,000 test puzzles.
