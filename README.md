@@ -1,5 +1,7 @@
 # Chess LLM post-training (CS 289A)
 
+**Start here:** [docs/project_notes.md](docs/project_notes.md) explains what we did, notebook by notebook, and what the results show. This README covers status, setup, and how to run things.
+
 ## Project description
 
 This project studies how post-training methods improve a small language model's chess play. We fine-tune Gemma 4 E2B with supervised fine-tuning (SFT), apply direct preference optimization (DPO) and reinforcement learning (RL) on top of it, first separately and then in combination, and evaluate every model on held-out Lichess puzzles. Language models handle many reasoning tasks well but still play chess poorly, often proposing illegal moves, and prior work has mostly studied these training methods one at a time rather than comparing them under the same conditions. Our aim is not only a stronger chess-playing model, but a clear picture of what each method contributes and whether combining them helps beyond any single method, with every method given comparable data and compute.
@@ -8,19 +10,20 @@ This project studies how post-training methods improve a small language model's 
 
 - **Training: Lichess games.** About 142,500 positions from games between players rated 2000+, each paired with the move that was played. Games give a large and varied set of realistic positions.
 - **Testing: Lichess puzzles.** 1,000 puzzles (plus 200 for quick checks), each with one correct move, so answers can be graded objectively. Puzzles are never used for training, and no training position appears among them.
-- **Why?** games supply many varied, realistic positions to learn from, while puzzles each have one verified answer, which makes them a fair exam. Keeping the two separate means test scores measure chess skill (not memorization).
+- **Why?** games supply many varied, realistic positions to learn from, while puzzles each have one verified answer, which makes them a fair exam. Keeping the two separate means test scores measure how well the model handles positions it has never seen (not whether it remembers answers from training).
 - **Planned:** training on puzzles (different ones from the test set), or on a mix of puzzles and games, instead of games only.
 
 ## Status
 
 **Done**
-- Data pipeline, evaluation, and SFT training code (notebooks 00–03), tested on a small scale
+- Data pipeline, evaluation, and SFT training code (notebooks 00–03)
 - DPO preference pairs and RL reward (notebook 04)
+- Base and SFT results on the GPU, then DPO and RL training code and a first DPO run (notebooks 02, 03, 05)
+- Analysis of the results so far (notebook 07)
 - Report outline, abstract, and related work (Overleaf, thanks Hannah!)
 
 **Still to do for the progress report (Nov 6)**
-- Run notebooks 02–03 on the GPU to get the base vs. SFT results (Nathan)
-- Then run DPO and a first RL run from the SFT model, for preliminary results (Nathan)
+- First RL run (notebook 06), then rerun notebook 07 (Nathan)
 - Write the report: progress, contributions, results (Hannah)
 - Agree on the updated timeline (everyone)
 
@@ -160,7 +163,7 @@ Then run `notebooks/00_setup_check.ipynb` and `notebooks/01_data_pipeline.ipynb`
 | `src/chesslm/` | Shared code used by the notebooks. |
 | `tests/` | Automatic checks for the shared code. |
 | `results/` | Scores for each run (`summary.csv` has one row per run), figures, and the comparison table. |
-| `docs/project_notes.md` | Plain-language explanation of the project. |
+| `docs/project_notes.md` | Plain-language walkthrough: each notebook, the training methods, and the results. |
 | `data/eval/` | The fixed test and dev puzzles (on GitHub). |
 | `data/raw/`, `data/processed/` | Downloads and training data. Not on GitHub (too large); rebuilt by `01_data_pipeline.ipynb`. |
 | `checkpoints/` | Trained adapters. Not on GitHub (too large); share them directly. |

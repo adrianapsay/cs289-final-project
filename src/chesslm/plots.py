@@ -1,6 +1,7 @@
 """Figures for comparing runs. One shared style so every figure in the report looks the same."""
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Colors follow the thing shown, in a fixed order: first run blue, second orange, third green, fourth yellow.
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
@@ -121,6 +122,124 @@ def reward_curve(log, path):
     ax.plot(rows.step, rows.reward, color=COLORS[0], linewidth=2)
     ax.set_xlabel("training step", color=MUTED)
     _style(ax, "average reward of sampled answers")
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    return fig
+
+
+# ---------------------------------------------------------------- interpreting results (notebook 07)
+
+# One hue from light to dark, for ordered groups such as "how much a move loses".
+BLUES = ["#d3e3f7", "#8fb7ea", "#4a8bdc", "#1d5aa8"]
+
+
+def accuracy_with_intervals(table, chance, path):
+    """Puzzle accuracy per run with its 95% interval, and a dashed line at the random-move accuracy."""
+    fig, ax = plt.subplots(figsize=(7, 3.2), facecolor=SURFACE)
+    runs = list(table.index)
+    values = table.accuracy * 100
+    errors = [values - table.low * 100, table.high * 100 - values]
+    bars = ax.bar(runs, values, color=COLORS[: len(runs)], edgecolor=SURFACE, linewidth=2,
+                  yerr=errors, capsize=6, error_kw={"ecolor": TEXT, "elinewidth": 1.2})
+    for bar, high in zip(bars, table.high * 100):
+        ax.annotate(f"{bar.get_height():.1f}", (bar.get_x() + bar.get_width() / 2, high),
+                    ha="center", va="bottom", fontsize=8, color=TEXT, xytext=(0, 2), textcoords="offset points")
+    ax.axhline(chance * 100, color=MUTED, linewidth=1.2, linestyle="--", label=f"random legal move ({chance:.1%})")
+    ax.legend(frameon=False, loc="upper left")
+    _style(ax, "puzzle accuracy (%)")
+    ax.set_ylim(bottom=0)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    return fig
+
+
+def accuracy_decomposition(table, chance, path):
+    """Accuracy = (share of legal answers) x (accuracy when the answer is legal), one panel for each factor."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.2), facecolor=SURFACE)
+    runs = list(table.index)
+    panels = [("legal_rate", "legal answers (%)"), ("accuracy_when_legal", "accuracy when the answer is legal (%)")]
+    for ax, (column, label) in zip(axes, panels):
+        bars = ax.bar(runs, table[column] * 100, color=COLORS[: len(runs)], edgecolor=SURFACE, linewidth=2)
+        _label_bars(ax, bars, "{:.1f}")
+        _style(ax, label)
+        ax.set_ylim(bottom=0)
+    axes[1].axhline(chance * 100, color=MUTED, linewidth=1.2, linestyle="--",
+                    label=f"random legal move ({chance:.1%})")
+    axes[1].legend(frameon=False, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    return fig
+
+
+def stacked_shares(shares, colors, xlabel, path):
+    """One horizontal bar per row of `shares` (a table of percentages summing to 100), split by column."""
+    fig, ax = plt.subplots(figsize=(8, 0.6 * len(shares) + 1.2), facecolor=SURFACE)
+    rows = list(shares.index)[::-1]  # first row on top
+    left = [0.0] * len(rows)
+    for color, column in zip(colors, shares.columns):
+        values = [shares.loc[row, column] for row in rows]
+        ax.barh(rows, values, left=left, label=column, color=color, edgecolor=SURFACE, linewidth=2)
+        dark = color in (BLUES[2], BLUES[3])
+        for y, (start, value) in enumerate(zip(left, values)):
+            if value >= 5:  # label segments wide enough to hold text
+                ax.text(start + value / 2, y, f"{value:.0f}%", ha="center", va="center", fontsize=8,
+                        color=SURFACE if dark else TEXT)
+        left = [a + b for a, b in zip(left, values)]
+    ax.set_xlim(0, 100)
+    ax.set_xlabel(xlabel, color=MUTED)
+    ax.legend(frameon=False, ncol=len(shares.columns), loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8)
+    _style(ax, "")
+    ax.grid(axis="x", color=GRID, linewidth=0.8)
+    ax.grid(axis="y", visible=False)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    return fig
+
+
+def token_probability_curve(log, path):
+    """SFT loss turned into a probability: exp(-loss) is the average (geometric mean) probability per answer token."""
+    fig, ax = plt.subplots(figsize=(7, 3.2), facecolor=SURFACE)
+    train = log.dropna(subset=["loss"])
+    val = log.dropna(subset=["eval_loss"])
+    ax.plot(train.step, np.exp(-train.loss) * 100, color=COLORS[0], linewidth=2, label="training examples")
+    ax.plot(val.step, np.exp(-val.eval_loss) * 100, color=COLORS[1], linewidth=2, marker="o", markersize=8,
+            label="validation examples")
+    ax.set_xlabel("training step", color=MUTED)
+    ax.legend(frameon=False)
+    _style(ax, "probability per answer token (%)")
+    ax.set_ylim(0, 100)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    return fig
+
+
+def dpo_diagnostics(log, beta, path):
+    """Left: how often the model prefers the chosen move (50% = no preference).
+    Right: the probability of the chosen and rejected answers, relative to the SFT model (log scale)."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.4), facecolor=SURFACE)
+    train = log.dropna(subset=["rewards/accuracies"])
+    val = log.dropna(subset=["eval_rewards/accuracies"])
+
+    ax = axes[0]
+    ax.plot(train.step, train["rewards/accuracies"] * 100, color=COLORS[0], linewidth=2, label="training pairs")
+    ax.plot(val.step, val["eval_rewards/accuracies"] * 100, color=COLORS[1], linewidth=2, marker="o", markersize=8,
+            label="held-out pairs")
+    ax.axhline(50, color=MUTED, linewidth=1.2, linestyle="--")
+    ax.set_ylim(0, 100)
+    ax.set_xlabel("training step", color=MUTED)
+    ax.legend(frameon=False, loc="lower right")
+    _style(ax, "prefers the chosen move (%)")
+
+    ax = axes[1]
+    for column, label, color in [("rewards/chosen", "chosen (Stockfish's best)", COLORS[2]),
+                                 ("rewards/rejected", "rejected (loses 200+ cp)", COLORS[3])]:
+        ax.plot(train.step, np.exp(train[column] / beta), color=color, linewidth=2, label=label)
+    ax.axhline(1, color=MUTED, linewidth=1.2, linestyle="--")
+    ax.set_yscale("log")
+    ax.yaxis.set_major_formatter(lambda value, _: f"{value:g}×")
+    ax.set_xlabel("training step", color=MUTED)
+    ax.legend(frameon=False, loc="lower left")
+    _style(ax, "probability vs. the SFT model (×)")
     fig.tight_layout()
     fig.savefig(path, dpi=200)
     return fig
