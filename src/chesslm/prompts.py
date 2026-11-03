@@ -84,7 +84,10 @@ def parse_move(text, board):
     for token in text.split():
         token = clean_token(token)
         if UCI_PATTERN.fullmatch(token.lower()):
-            move = chess.Move.from_uci(token.lower())
+            try:
+                move = chess.Move.from_uci(token.lower())
+            except ValueError:  # e.g. "f7f7": the same square twice is not a move
+                return None, "illegal"
             return (move, "legal") if move in board.legal_moves else (None, "illegal")
         if SAN_PATTERN.fullmatch(token):
             try:

@@ -41,6 +41,7 @@ TWO_KNIGHTS = "4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1"      # knights on b1 and f1 can
     (chess.STARTING_FEN, "e2e5", None, "illegal"),
     (chess.STARTING_FEN, "Nf6", None, "illegal"),
     (TWO_KNIGHTS, "Nd2", None, "illegal"),  # ambiguous: which knight?
+    (chess.STARTING_FEN, "f7f7", None, "illegal"),  # looks like UCI, but the same square twice
     (TWO_KNIGHTS, "Nbd2", "b1d2", "legal"),
     # no move at all
     (chess.STARTING_FEN, "I think White should attack.", None, "unparseable"),
