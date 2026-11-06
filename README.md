@@ -1,6 +1,6 @@
 # Chess LLM post-training (CS 289A)
 
-**Start here:** [docs/project_notes.md](docs/project_notes.md) explains what we did, notebook by notebook, and what the results show. This README covers status, setup, and how to run things.
+**Start here:** [docs/project_notes.md](docs/project_notes.md) explains what we did, notebook by notebook, what the results show, and the key facts for the report's Data and Methods sections. This README covers status, setup, and how to run things.
 
 ## Project description
 
@@ -34,43 +34,16 @@ This project studies how post-training methods improve a small language model's 
 \*SFT ran before a memory fix and was slowed by it (its trial ran about 5 times faster per step), so compare methods by tokens rather than hours.
 
 **Still to do for the progress report (Nov 6)**
-- Write the report: progress, contributions, results (Hannah)
+- Finish the report: progress, contributions, results (Hannah)
 - Agree on the updated timeline (everyone)
 
-**By the first draft of the paper (Nov 24):** fix DPO and RL on their own, train SFT on Stockfish's best moves, then combine methods (e.g. SFT → DPO → RL). See the [next steps](docs/project_notes.md#5-limitations-and-next-steps).
+**By the first draft of the paper (Nov 24):** refine DPO and RL on their own, train SFT on Stockfish's best moves, decide which remaining evaluations from our proposal to include, then combine methods (e.g. SFT → DPO → RL). See the [next steps](docs/project_notes.md#5-limitations-and-next-steps).
 
-## Contributions
+## Contributions up to Progress Report
 
 - **Adrian:** repository and environment, data pipeline, prompts and move parsing, evaluation, SFT training code, DPO/RL inputs, results analysis (notebook 07), and project notes (details in `CONTRIBUTIONS.md`).
 - **Hannah:** Overleaf document, report outline, abstract, and related work.
 - **Nathan:** GPU runs (base, SFT, DPO, RL), DPO and RL training code, the memory fix that lets training fit in 12 GB, and the RL analysis (details in `CONTRIBUTIONS.md`).
-
-## For the report (data and methods section)
-
-Key facts for the Data and Methods sections. More detail is in `docs/project_notes.md`, exact numbers are in `results/data_stats.json`, and all settings are in `configs/`.
-
-**Data**
-- **Training games:** Lichess game database, September 2025 (one file of 1.4M games), filtered to 50,000 games:
-  - both players rated 2000+
-  - no bot accounts
-  - at least 3 minutes per player
-  - a normal ending
-  - at least 20 moves
-- **Training examples:** 3 positions per game, skipping the first 5 moves. Each example is a board position and the move played. 142,500 for training and 7,500 for validation, split by game.
-- **Test puzzles:** from the Lichess puzzle database (6.2M puzzles). 1,000 test and 200 dev puzzles, with equal numbers in four rating bands (<1200, 1200–1800, 1800–2400, 2400+). Each has one correct move.
-- **No leakage:** no training position appears among the test or dev puzzles.
-
-**Method**
-- **Model:** Gemma 4 E2B, instruction-tuned. Only the language part is used: 4.63B parameters, about 2.3B "effective".
-- **Prompt:** the board as a FEN, whose turn it is, and "reply with the best move". It is the same for every model, in training and testing.
-- **SFT:** LoRA (rank 16) on 20,000 examples, one epoch. The model learns to produce the move that was played.
-- **DPO:** 4,788 pairs. The preferred move is Stockfish's best; the rejected move is a legal move losing 200+ centipawns (our metric that grades how worse the model's move is than Stockfish's best). Training continues the SFT adapter for one epoch over 95% of the pairs (5% held out), with β = 0.1 and the SFT model as the reference.
-- **RL (GRPO):** the model's own answers are scored by Stockfish. Illegal answers get −1; legal moves score higher the closer they are to Stockfish's best. Training continues the SFT adapter on 2,000 training positions, with 8 sampled answers per position and no KL penalty.
-- **Evaluation:**
-  - puzzle accuracy (primary; overall and per rating band)
-  - legal-move rate (illegal and unparseable answers counted separately)
-  - average centipawn loss (ACPL) against Stockfish
-- **Fair comparison:** every model gets the same prompts, puzzles, and grading. Decoding is deterministic, seeds are fixed, data and model versions are pinned, and compute is logged per run.
 
 ---
 
@@ -176,7 +149,7 @@ Then run `notebooks/00_setup_check.ipynb` and `notebooks/01_data_pipeline.ipynb`
 | `src/chesslm/` | Shared code used by the notebooks. |
 | `tests/` | Automatic checks for the shared code. |
 | `results/` | Scores for each run (`summary.csv` has one row per run), figures, and the comparison table. |
-| `docs/project_notes.md` | Plain-language walkthrough: each notebook, the training methods, and the results. |
+| `docs/project_notes.md` | Plain-language walkthrough: each notebook, the training methods, the results, and key facts for the report. |
 | `data/eval/` | The fixed test and dev puzzles (on GitHub). |
 | `data/raw/`, `data/processed/` | Downloads and training data. Not on GitHub (too large); rebuilt by `01_data_pipeline.ipynb`. |
 | `checkpoints/` | Trained adapters. Not on GitHub (too large); share them directly. |

@@ -2,14 +2,15 @@
 
 What we are doing and what the results show, readable without the code. Exact settings are in `configs/`, details are in each notebook, and setup instructions are in the [README](../README.md).
 
-As of Nov 3, the base model, SFT, and DPO are trained and graded. The first RL run is next.
+As of Nov 5, all four models (base, SFT, DPO, and RL) are trained and graded.
 
 1. [The project](#1-the-project)
 2. [How the methods work](#2-how-the-methods-work)
 3. [What each notebook does](#3-what-each-notebook-does)
 4. [Results, and why](#4-results-and-why)
 5. [Limitations and next steps](#5-limitations-and-next-steps)
-6. [Glossary](#6-glossary)
+6. [Key facts for the report](#6-key-facts-for-the-report)
+7. [Glossary](#7-glossary)
 
 ---
 
@@ -46,7 +47,7 @@ It helps to start with how the model produces a move. The model reads the prompt
 | Starts from | base model | SFT model | SFT model |
 | Learns from | 20,000 positions + the move a strong player made | 4,549 pairs of a better and a worse move | its own answers on 2,000 positions, scored by Stockfish |
 | Makes more likely | the human move | the better move, relative to the worse one | answers that score above the group average |
-| Compute | 6.6 GPU-hours | 0.33 GPU-hours | 0.543 GPU-hours |
+| Compute | 6.6 GPU-hours | 0.33 GPU-hours | 0.54 GPU-hours |
 
 All three train a small add-on to the model (a LoRA adapter) while the original model stays frozen, which lets training fit on one 12 GB GPU.
 
@@ -202,7 +203,36 @@ Each ablation changes one factor, retrains, and grades the result the same way. 
 
 ---
 
-## 6. Glossary
+## 6. Key facts for the report
+
+Key facts for the Data and Methods sections. More detail is in the sections above, exact numbers are in `results/data_stats.json`, and all settings are in `configs/`.
+
+**Data**
+- **Training games:** Lichess game database, September 2025 (one file of 1.4M games), filtered to 50,000 games:
+  - both players rated 2000+
+  - no bot accounts
+  - at least 3 minutes per player
+  - a normal ending
+  - at least 20 moves
+- **Training examples:** 3 positions per game, skipping the first 5 moves. Each example is a board position and the move played. 142,500 for training and 7,500 for validation, split by game.
+- **Test puzzles:** from the Lichess puzzle database (6.2M puzzles). 1,000 test and 200 dev puzzles, with equal numbers in four rating bands (<1200, 1200–1800, 1800–2400, 2400+). Each has one correct move.
+- **No leakage:** no training position appears among the test or dev puzzles.
+
+**Method**
+- **Model:** Gemma 4 E2B, instruction-tuned. Only the language part is used: 4.63B parameters, about 2.3B "effective".
+- **Prompt:** the board as a FEN, whose turn it is, and "reply with the best move". It is the same for every model, in training and testing.
+- **SFT:** LoRA (rank 16) on 20,000 examples, one epoch. The model learns to produce the move that was played.
+- **DPO:** 4,788 pairs. The preferred move is Stockfish's best; the rejected move is a legal move losing 200+ centipawns (our metric that grades how worse the model's move is than Stockfish's best). Training continues the SFT adapter for one epoch over 95% of the pairs (5% held out), with β = 0.1 and the SFT model as the reference.
+- **RL (GRPO):** the model's own answers are scored by Stockfish. Illegal answers get −1; legal moves score higher the closer they are to Stockfish's best. Training continues the SFT adapter on 2,000 training positions, with 8 sampled answers per position and no KL penalty.
+- **Evaluation:**
+  - puzzle accuracy (primary; overall and per rating band)
+  - legal-move rate (illegal and unparseable answers counted separately)
+  - average centipawn loss (ACPL) against Stockfish
+- **Fair comparison:** every model gets the same prompts, puzzles, and grading. Decoding is deterministic, seeds are fixed, data and model versions are pinned, and compute is logged per run.
+
+---
+
+## 7. Glossary
 
 - **Token:** the unit of text a model reads and writes.
 - **FEN:** a one-line text encoding of a full board position.
