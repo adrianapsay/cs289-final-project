@@ -20,7 +20,7 @@ This project studies how post-training methods improve a small language model's 
 - DPO preference pairs and RL reward (notebook 04)
 - Base and SFT results on the GPU, then DPO and RL training code and first DPO and RL runs (notebooks 02, 03, 05, 06)
 - Analysis of the results for all four models (notebook 07)
-- Report outline, abstract, and related work (Overleaf, thanks Hannah!)
+- Report outline and related work (Overleaf, thanks Hannah!)
 
 **Results so far** (1,000 test puzzles; details in `results/progress_report_table.md` and notebook 07)
 
@@ -42,7 +42,7 @@ This project studies how post-training methods improve a small language model's 
 ## Contributions up to Progress Report
 
 - **Adrian:** repository and environment, data pipeline, prompts and move parsing, evaluation, SFT training code, DPO/RL inputs, results analysis (notebook 07), and project notes (details in `CONTRIBUTIONS.md`).
-- **Hannah:** Overleaf document, report outline, abstract, and related work.
+- **Hannah:** Overleaf document, report outline, literature review, and related work.
 - **Nathan:** GPU runs (base, SFT, DPO, RL), DPO and RL training code, the memory fix that lets training fit in 12 GB, and the RL analysis (details in `CONTRIBUTIONS.md`).
 
 ---
