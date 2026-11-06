@@ -46,7 +46,7 @@ It helps to start with how the model produces a move. The model reads the prompt
 | Starts from | base model | SFT model | SFT model |
 | Learns from | 20,000 positions + the move a strong player made | 4,549 pairs of a better and a worse move | its own answers on 2,000 positions, scored by Stockfish |
 | Makes more likely | the human move | the better move, relative to the worse one | answers that score above the group average |
-| Compute | 6.6 GPU-hours | 0.33 GPU-hours | not run yet |
+| Compute | 6.6 GPU-hours | 0.33 GPU-hours | 0.543 GPU-hours |
 
 All three train a small add-on to the model (a LoRA adapter) while the original model stays frozen, which lets training fit on one 12 GB GPU.
 
